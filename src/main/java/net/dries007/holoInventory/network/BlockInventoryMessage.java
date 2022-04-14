@@ -80,6 +80,7 @@ public class BlockInventoryMessage implements IMessage
                         }
                         if (!f) stacks.add(stackToAdd.copy());
                     }
+                    data.data = stacks.toArray(new ItemStack[0]);
                 }
                 Renderer.tileMap.put(message.data.getInteger("id"), data);
             }
