@@ -54,6 +54,7 @@ import net.minecraft.world.WorldServer;
 import net.minecraftforge.event.entity.player.EntityInteractEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
+import java.lang.ref.WeakReference;
 import java.util.*;
 
 public class ServerEventHandler {
@@ -73,10 +74,10 @@ public class ServerEventHandler {
             return h;
         }
         public CachedPatternInventory(IInventory wrapper, IInventory key) {
-            inventory = wrapper;
+            inventory = new WeakReference<>(wrapper);
             hash = computeHash(key);
         }
-        public IInventory inventory;
+        public WeakReference<IInventory> inventory;
         public int hash;
     }
     Map<IInventory, CachedPatternInventory> wrappedInventoryCache = new WeakHashMap<>();
@@ -242,11 +243,11 @@ public class ServerEventHandler {
 
     private IInventory getCachedPatternsWrapper(WorldServer world, String name, IInventory patterns) {
         CachedPatternInventory cache = wrappedInventoryCache.get(patterns);
-        if (cache == null || cache.hash != CachedPatternInventory.computeHash(patterns)) {
+        if (cache == null || cache.inventory.get() == null || cache.hash != CachedPatternInventory.computeHash(patterns)) {
             cache = new CachedPatternInventory(convertToOutputItems(name, patterns, world), patterns);
             wrappedInventoryCache.put(patterns, cache);
         }
-        return cache.inventory;
+        return cache.inventory.get();
     }
 
     private void checkForChangedType(int id, TileEntity te)

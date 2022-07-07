@@ -30,20 +30,22 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.nbt.NBTTagCompound;
 
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
+import java.util.WeakHashMap;
 
 public class InventoryData
 {
     public int id;
-    public IInventory te;
-    public HashMap<EntityPlayer, NBTTagCompound> playerSet = new HashMap<EntityPlayer, NBTTagCompound>();
+    public WeakReference<IInventory> te;
+    public WeakHashMap<EntityPlayer, NBTTagCompound> playerSet = new WeakHashMap<>();
     public String name;
     public String type;
 
     public InventoryData(IInventory te, int id)
     {
         this.id = id;
-        this.te = te;
+        this.te = new WeakReference<>(te);
         this.name = Strings.nullToEmpty(te.getInventoryName());
         this.type = te.getClass().getCanonicalName();
         if (type == null) type = te.getClass().getName();
@@ -51,10 +53,14 @@ public class InventoryData
 
     public void sendIfOld(EntityPlayerMP player)
     {
+        IInventory ste = te.get();
+        if (ste == null) {
+            return;
+        }
         NBTTagCompound data = new NBTTagCompound();
         data.setInteger("id", this.id);
         data.setString("name", name);
-        data.setTag("list", DecoderRegistry.toNBT(te));
+        data.setTag("list", DecoderRegistry.toNBT(ste));
 
         if (!playerSet.containsKey(player) || !playerSet.get(player).equals(data))
         {
@@ -65,7 +71,7 @@ public class InventoryData
 
     public void update(IInventory inventory)
     {
-        te = inventory;
+        te = new WeakReference<>(inventory);
     }
 
     public String getType()
