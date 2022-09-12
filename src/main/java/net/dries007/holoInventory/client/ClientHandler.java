@@ -41,8 +41,7 @@ public class ClientHandler {
         public void doRender(EntityItem par1EntityItem, double par2, double par4, double par6, float par8, float par9) {
             try {
                 super.doRender(par1EntityItem, par2, par4, par6, par8, par9);
-            } catch (Exception e) {
-                // e.printStackTrace();
+            } catch (Exception ignored) {
             }
         }
 
