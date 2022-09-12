@@ -89,7 +89,9 @@ public class ServerEventHandler {
     @SubscribeEvent()
     public void event(PlayerInteractEvent event) {
         if (event.action != PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK) return;
-        if (banUsers.contains(event.entityPlayer.getDisplayName())) {// TODO do we really need to check a list on each players right click ?
+        if (banUsers.contains(
+                event.entityPlayer
+                        .getDisplayName())) { // TODO do we really need to check a list on each players right click ?
             banUsers.remove(event.entityPlayer.getDisplayName());
             event.setCanceled(true);
 
@@ -105,7 +107,9 @@ public class ServerEventHandler {
             HoloInventory.getConfig().overrideBannedThings();
         }
 
-        if (overrideUsers.containsKey(event.entityPlayer.getDisplayName())) {// TODO do we really need to check a list on each players right click ?
+        if (overrideUsers.containsKey(
+                event.entityPlayer
+                        .getDisplayName())) { // TODO do we really need to check a list on each players right click ?
             if (FMLCommonHandler.instance().getEffectiveSide().isClient()) return;
 
             String nameOverride = overrideUsers.get(event.entityPlayer.getDisplayName());
@@ -133,7 +137,9 @@ public class ServerEventHandler {
 
     @SubscribeEvent()
     public void event(EntityInteractEvent event) {
-        if (banUsers.contains(event.entityPlayer.getDisplayName())) {// TODO do we really need to check a list on each players right click ?
+        if (banUsers.contains(
+                event.entityPlayer
+                        .getDisplayName())) { // TODO do we really need to check a list on each players right click ?
             banUsers.remove(event.entityPlayer.getDisplayName());
             event.setCanceled(true);
             if (Helper.weWant(event.target)) {
@@ -203,7 +209,8 @@ public class ServerEventHandler {
                                 final IPartHost host = (IPartHost) te;
                                 final SelectedPart sp = host.selectPart(position);
                                 if (sp != null && sp.part instanceof PartInterface) {
-                                    final IInventory patterns = ((PartInterface) sp.part).getInventoryByName("patterns");
+                                    final IInventory patterns =
+                                            ((PartInterface) sp.part).getInventoryByName("patterns");
                                     final IInventory wrapped = getCachedPatternsWrapper(
                                             world, ((PartInterface) sp.part).getCustomName(), patterns);
                                     doStuff(coord.hashCode(), player, wrapped);
