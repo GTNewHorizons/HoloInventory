@@ -280,11 +280,9 @@ public class ServerEventHandler {
             outputs[i] = null;
             if (stack != null && stack.getItem() instanceof ICraftingPatternItem) {
                 ICraftingPatternDetails pd = ((ICraftingPatternItem) stack.getItem()).getPatternForItem(stack, w);
-                if (pd == null)
-                    continue;
+                if (pd == null) continue;
                 IAEItemStack[] outs = pd.getCondensedOutputs();
-                if (outs != null && outs.length > 0)
-                    outputs[i] = outs[0].getItemStack();
+                if (outs != null && outs.length > 0) outputs[i] = outs[0].getItemStack();
             }
         }
         return new FakeInventory(name, outputs);
