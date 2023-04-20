@@ -13,7 +13,7 @@
 
 package net.dries007.holoInventory;
 
-import net.dries007.holoInventory.compat.DecoderRegistry;
+import net.dries007.holoInventory.compat.InventoryDecoderRegistry;
 import net.dries007.holoInventory.items.HoloGlasses;
 import net.dries007.holoInventory.network.*;
 import net.dries007.holoInventory.server.CommandHoloInventory;
@@ -89,7 +89,7 @@ public class HoloInventory {
 
         proxy.preInit();
 
-        DecoderRegistry.init();
+        InventoryDecoderRegistry.init();
     }
 
     @Mod.EventHandler()

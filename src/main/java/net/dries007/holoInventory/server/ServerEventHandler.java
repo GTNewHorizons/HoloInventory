@@ -13,6 +13,8 @@
 
 package net.dries007.holoInventory.server;
 
+import static net.dries007.holoInventory.util.NBTKeys.*;
+
 import java.lang.ref.WeakReference;
 import java.util.*;
 
@@ -263,8 +265,8 @@ public class ServerEventHandler {
             inventoryData.playerSet.remove(player);
             if (inventoryData.playerSet.isEmpty()) blockMap.remove(coord.hashCode());
             final NBTTagCompound root = new NBTTagCompound();
-            root.setByte("type", (byte) 0);
-            root.setInteger("id", coord.hashCode());
+            root.setByte(NBT_KEY_TYPE, (byte) 0);
+            root.setInteger(NBT_KEY_ID, coord.hashCode());
             HoloInventory.getSnw().sendTo(new RemoveInventoryMessage(root), player);
         }
     }
