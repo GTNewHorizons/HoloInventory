@@ -57,7 +57,7 @@ public class ServerEventHandler {
 
     public final List<String> banUsers = new ArrayList<>();
     public final HashMap<String, String> overrideUsers = new HashMap<>();
-    public final HashMap<Integer, InventoryData> blockMap = new HashMap<>();
+    public final HashMap<Integer, InventoryData> mapBlockToInv = new HashMap<>();
 
     private static class CachedPatternInventory {
 
@@ -160,84 +160,83 @@ public class ServerEventHandler {
             if (world == null) return;
 
             final MovingObjectPosition mo = Helper.getPlayerLookingSpot(player);
+            if (mo == null) return;
 
-            if (mo != null) {
-                switch (mo.typeOfHit) {
-                    case BLOCK:
-                        final Coord coord = new Coord(world.provider.dimensionId, mo);
-                        final int x = (int) coord.x, y = (int) coord.y, z = (int) coord.z;
-                        final TileEntity te = world.getTileEntity(x, y, z);
-                        if (Helper.weWant(te)) {
-                            checkForChangedType(coord.hashCode(), te);
-                            if (Config.bannedTiles.contains(te.getClass().getCanonicalName())) {
-                                // BANNED THING
-                                cleanup(coord, player);
-                            } else if (te instanceof TileEntityChest) {
-                                final Block block = world.getBlock(x, y, z);
-                                final TileEntityChest teChest = (TileEntityChest) te;
-                                IInventory inventory = teChest;
-
-                                if (world.getBlock(x, y, z + 1) == block) inventory = new InventoryLargeChest(
-                                        "container.chestDouble",
-                                        teChest,
-                                        (TileEntityChest) world.getTileEntity(x, y, z + 1));
-                                else if (world.getBlock(x - 1, y, z) == block) inventory = new InventoryLargeChest(
-                                        "container.chestDouble",
-                                        (TileEntityChest) world.getTileEntity(x - 1, y, z),
-                                        teChest);
-                                else if (world.getBlock(x, y, z - 1) == block) inventory = new InventoryLargeChest(
-                                        "container.chestDouble",
-                                        (TileEntityChest) world.getTileEntity(x, y, z - 1),
-                                        teChest);
-                                else if (world.getBlock(x + 1, y, z) == block) inventory = new InventoryLargeChest(
-                                        "container.chestDouble",
-                                        teChest,
-                                        (TileEntityChest) world.getTileEntity(x + 1, y, z));
-
-                                doStuff(coord.hashCode(), player, inventory);
-                            } else if (te instanceof TileInterface) {
-                                final IInventory patterns = ((TileInterface) te).getInventoryByName("patterns");
-                                final IInventory wrapped = getCachedPatternsWrapper(
-                                        world,
-                                        ((TileInterface) te).getCustomName(),
-                                        patterns);
-                                doStuff(coord.hashCode(), player, wrapped);
-                            } else if (te instanceof IPartHost) {
-                                final Vec3 position = mo.hitVec.addVector(-mo.blockX, -mo.blockY, -mo.blockZ);
-                                final IPartHost host = (IPartHost) te;
-                                final SelectedPart sp = host.selectPart(position);
-                                if (sp != null && sp.part instanceof PartInterface) {
-                                    final IInventory patterns = ((PartInterface) sp.part)
-                                            .getInventoryByName("patterns");
-                                    final IInventory wrapped = getCachedPatternsWrapper(
-                                            world,
-                                            ((PartInterface) sp.part).getCustomName(),
-                                            patterns);
-                                    doStuff(coord.hashCode(), player, wrapped);
-                                }
-                            } else if (te instanceof IInventory) {
-                                doStuff(coord.hashCode(), player, (IInventory) te);
-                            } else if (te instanceof TileEntityEnderChest) {
-                                doStuff(coord.hashCode(), player, player.getInventoryEnderChest());
-                            } else if (te instanceof BlockJukebox.TileEntityJukebox) {
-                                BlockJukebox.TileEntityJukebox realTe = ((BlockJukebox.TileEntityJukebox) te);
-                                doStuff(coord.hashCode(), player, JUKEBOX_NAME, realTe.func_145856_a());
-                            } else {
-                                cleanup(coord, player);
-                            }
-                        }
-                        break;
-                    case ENTITY:
-                        if (Helper.weWant(mo.entityHit)) {
-                            doStuff(mo.entityHit.getEntityId(), player, (IInventory) mo.entityHit);
-                        }
-                        break;
-                }
+            switch (mo.typeOfHit) {
+                case BLOCK:
+                    handleInventoryBlock(world, player, mo);
+                    break;
+                case ENTITY:
+                    if (mo.entityHit instanceof IInventory) {
+                        processInventoryData(mo.entityHit.getEntityId(), player, (IInventory) mo.entityHit);
+                    }
+                    break;
             }
         } catch (Exception e) {
             HoloInventory.getLogger().warn("Some error while sending over inventory, no hologram for you :(");
             HoloInventory.getLogger().warn("Please make an issue on github if this happens.");
             e.printStackTrace();
+        }
+    }
+
+    private void handleInventoryBlock(WorldServer world, EntityPlayerMP player, MovingObjectPosition mo) {
+        final Coord coord = new Coord(world.provider.dimensionId, mo);
+        final int x = (int) coord.x, y = (int) coord.y, z = (int) coord.z;
+        final TileEntity te = world.getTileEntity(x, y, z);
+        if (!Helper.weWant(te)) return;
+
+        checkForChangedType(coord.hashCode(), te);
+        if (Config.bannedTiles.contains(te.getClass().getCanonicalName())) {
+            // BANNED THING
+            removeInventoryData(coord, player);
+        } else if (te instanceof TileEntityChest) {
+            final Block block = world.getBlock(x, y, z);
+            final TileEntityChest teChest = (TileEntityChest) te;
+            IInventory inventory = teChest;
+
+            if (world.getBlock(x, y, z + 1) == block) inventory = new InventoryLargeChest(
+                    "container.chestDouble",
+                    teChest,
+                    (TileEntityChest) world.getTileEntity(x, y, z + 1));
+            else if (world.getBlock(x - 1, y, z) == block) inventory = new InventoryLargeChest(
+                    "container.chestDouble",
+                    (TileEntityChest) world.getTileEntity(x - 1, y, z),
+                    teChest);
+            else if (world.getBlock(x, y, z - 1) == block) inventory = new InventoryLargeChest(
+                    "container.chestDouble",
+                    (TileEntityChest) world.getTileEntity(x, y, z - 1),
+                    teChest);
+            else if (world.getBlock(x + 1, y, z) == block) inventory = new InventoryLargeChest(
+                    "container.chestDouble",
+                    teChest,
+                    (TileEntityChest) world.getTileEntity(x + 1, y, z));
+
+            processInventoryData(coord.hashCode(), player, inventory);
+        } else if (te instanceof TileInterface) {
+            final IInventory patterns = ((TileInterface) te).getInventoryByName("patterns");
+            final IInventory wrapped = getCachedPatternsWrapper(world, ((TileInterface) te).getCustomName(), patterns);
+            processInventoryData(coord.hashCode(), player, wrapped);
+        } else if (te instanceof IPartHost) {
+            final Vec3 position = mo.hitVec.addVector(-mo.blockX, -mo.blockY, -mo.blockZ);
+            final IPartHost host = (IPartHost) te;
+            final SelectedPart sp = host.selectPart(position);
+            if (sp != null && sp.part instanceof PartInterface) {
+                final IInventory patterns = ((PartInterface) sp.part).getInventoryByName("patterns");
+                final IInventory wrapped = getCachedPatternsWrapper(
+                        world,
+                        ((PartInterface) sp.part).getCustomName(),
+                        patterns);
+                processInventoryData(coord.hashCode(), player, wrapped);
+            }
+        } else if (te instanceof IInventory) {
+            processInventoryData(coord.hashCode(), player, (IInventory) te);
+        } else if (te instanceof TileEntityEnderChest) {
+            processInventoryData(coord.hashCode(), player, player.getInventoryEnderChest());
+        } else if (te instanceof BlockJukebox.TileEntityJukebox) {
+            BlockJukebox.TileEntityJukebox realTe = ((BlockJukebox.TileEntityJukebox) te);
+            processInventoryData(coord.hashCode(), player, JUKEBOX_NAME, realTe.func_145856_a());
+        } else {
+            removeInventoryData(coord, player);
         }
     }
 
@@ -253,17 +252,17 @@ public class ServerEventHandler {
     }
 
     private void checkForChangedType(int id, TileEntity te) {
-        if (blockMap.containsKey(id)) {
-            final InventoryData data = blockMap.get(id);
-            if (!te.getClass().getCanonicalName().equals(data.getType())) blockMap.remove(id);
+        if (mapBlockToInv.containsKey(id)) {
+            final InventoryData data = mapBlockToInv.get(id);
+            if (!te.getClass().getCanonicalName().equals(data.getType())) mapBlockToInv.remove(id);
         }
     }
 
-    private void cleanup(Coord coord, EntityPlayerMP player) {
-        if (blockMap.containsKey(coord.hashCode())) {
-            final InventoryData inventoryData = blockMap.get(coord.hashCode());
+    private void removeInventoryData(Coord coord, EntityPlayerMP player) {
+        if (mapBlockToInv.containsKey(coord.hashCode())) {
+            final InventoryData inventoryData = mapBlockToInv.get(coord.hashCode());
             inventoryData.playerSet.remove(player);
-            if (inventoryData.playerSet.isEmpty()) blockMap.remove(coord.hashCode());
+            if (inventoryData.playerSet.isEmpty()) mapBlockToInv.remove(coord.hashCode());
             final NBTTagCompound root = new NBTTagCompound();
             root.setByte(NBT_KEY_TYPE, (byte) 0);
             root.setInteger(NBT_KEY_ID, coord.hashCode());
@@ -287,19 +286,22 @@ public class ServerEventHandler {
         return new FakeInventory(name, outputs);
     }
 
-    private void doStuff(int id, EntityPlayerMP player, String name, ItemStack... itemStacks) {
-        doStuff(id, player, new FakeInventory(name, itemStacks));
+    private void processInventoryData(int id, EntityPlayerMP player, String name, ItemStack... itemStacks) {
+        processInventoryData(id, player, new FakeInventory(name, itemStacks));
     }
 
-    private void doStuff(int id, EntityPlayerMP player, IInventory inventory) {
-        InventoryData inventoryData = blockMap.get(id);
-        if (inventoryData == null) inventoryData = new InventoryData(inventory, id);
-        else inventoryData.update(inventory);
+    private void processInventoryData(int id, EntityPlayerMP player, IInventory inventory) {
+        InventoryData inventoryData = mapBlockToInv.get(id);
+        if (inventoryData == null) {
+            inventoryData = new InventoryData(inventory, id);
+        } else {
+            inventoryData.update(inventory);
+        }
         inventoryData.sendIfOld(player);
-        blockMap.put(id, inventoryData);
+        mapBlockToInv.put(id, inventoryData);
     }
 
-    public void clear() {
-        blockMap.clear();
+    public void clearInventoryData() {
+        mapBlockToInv.clear();
     }
 }
