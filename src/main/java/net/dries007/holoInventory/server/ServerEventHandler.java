@@ -183,9 +183,9 @@ public class ServerEventHandler {
         final Coord coord = new Coord(world.provider.dimensionId, mo);
         final int x = (int) coord.x, y = (int) coord.y, z = (int) coord.z;
         final TileEntity te = world.getTileEntity(x, y, z);
-        if (!Helper.weWant(te)) return;
+        if (te == null) return;
 
-        checkForChangedType(coord.hashCode(), te);
+        checkForChangedType(coord, te, player);
         if (Config.bannedTiles.contains(te.getClass().getCanonicalName())) {
             // BANNED THING
             removeInventoryData(coord, player);
@@ -227,6 +227,8 @@ public class ServerEventHandler {
                         ((PartInterface) sp.part).getCustomName(),
                         patterns);
                 processInventoryData(coord.hashCode(), player, wrapped);
+            } else {
+                removeInventoryData(coord, player);
             }
         } else if (te instanceof IInventory) {
             processInventoryData(coord.hashCode(), player, (IInventory) te);
@@ -251,23 +253,31 @@ public class ServerEventHandler {
         return ret;
     }
 
-    private void checkForChangedType(int id, TileEntity te) {
+    private void checkForChangedType(Coord coord, TileEntity te, EntityPlayerMP player) {
+        int id = coord.hashCode();
         if (mapBlockToInv.containsKey(id)) {
             final InventoryData data = mapBlockToInv.get(id);
-            if (!te.getClass().getCanonicalName().equals(data.getType())) mapBlockToInv.remove(id);
+            if (!te.getClass().getCanonicalName().equals(data.getType())) {
+                doRemoveInventoryData(id, player, data);
+            }
         }
     }
 
     private void removeInventoryData(Coord coord, EntityPlayerMP player) {
-        if (mapBlockToInv.containsKey(coord.hashCode())) {
-            final InventoryData inventoryData = mapBlockToInv.get(coord.hashCode());
-            inventoryData.playerSet.remove(player);
-            if (inventoryData.playerSet.isEmpty()) mapBlockToInv.remove(coord.hashCode());
-            final NBTTagCompound root = new NBTTagCompound();
-            root.setByte(NBT_KEY_TYPE, (byte) 0);
-            root.setInteger(NBT_KEY_ID, coord.hashCode());
-            HoloInventory.getSnw().sendTo(new RemoveInventoryMessage(root), player);
+        int id = coord.hashCode();
+        if (mapBlockToInv.containsKey(id)) {
+            final InventoryData inventoryData = mapBlockToInv.get(id);
+            doRemoveInventoryData(id, player, inventoryData);
         }
+    }
+
+    private void doRemoveInventoryData(int id, EntityPlayerMP player, InventoryData inventoryData) {
+        inventoryData.playerSet.remove(player);
+        if (inventoryData.playerSet.isEmpty()) mapBlockToInv.remove(id);
+        final NBTTagCompound root = new NBTTagCompound();
+        root.setByte(NBT_KEY_TYPE, (byte) 0);
+        root.setInteger(NBT_KEY_ID, id);
+        HoloInventory.getSnw().sendTo(new RemoveInventoryMessage(root), player);
     }
 
     private IInventory convertToOutputItems(String name, IInventory patterns, World w) {
