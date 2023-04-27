@@ -42,7 +42,7 @@ public class RemoveInventoryMessage implements IMessage {
             if (ctx.side.isClient()) {
                 switch (message.data.getByte(NBT_KEY_TYPE)) {
                     case 0:
-                        Renderer.tileMap.remove(message.data.getInteger(NBT_KEY_ID));
+                        Renderer.tileInventoryMap.remove(message.data.getInteger(NBT_KEY_ID));
                     case 1:
                         Renderer.entityMap.remove(message.data.getInteger(NBT_KEY_ID));
                     case 2:

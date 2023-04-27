@@ -25,7 +25,7 @@ public class ResetMessage implements IMessage {
             if (ctx.side.isClient()) {
                 Renderer.entityMap.clear();
                 Renderer.requestMap.clear();
-                Renderer.tileMap.clear();
+                Renderer.tileInventoryMap.clear();
                 Renderer.merchantMap.clear();
             }
             return null;

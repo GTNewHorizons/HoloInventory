@@ -87,7 +87,7 @@ public class BlockInventoryMessage implements IMessage {
                     }
                     data.data = stacks.toArray(new ItemStack[0]);
                 }
-                Renderer.tileMap.put(message.data.getInteger(NBT_KEY_ID), data);
+                Renderer.tileInventoryMap.put(message.data.getInteger(NBT_KEY_ID), data);
             }
 
             return null;
