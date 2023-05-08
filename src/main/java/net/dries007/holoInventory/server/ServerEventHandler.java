@@ -40,6 +40,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.event.entity.player.EntityInteractEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.fluids.IFluidHandler;
 
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
@@ -58,6 +59,7 @@ public class ServerEventHandler {
     public final List<String> banUsers = new ArrayList<>();
     public final HashMap<String, String> overrideUsers = new HashMap<>();
     public final HashMap<Integer, InventoryData> mapBlockToInv = new HashMap<>();
+    public final HashMap<Integer, FluidHandlerData> mapBlockToFluidHandler = new HashMap<>();
 
     private static class CachedPatternInventory {
 
@@ -165,6 +167,7 @@ public class ServerEventHandler {
             switch (mo.typeOfHit) {
                 case BLOCK:
                     handleInventoryBlock(world, player, mo);
+                    handleFluidHandlerBlock(world, player, mo);
                     break;
                 case ENTITY:
                     if (mo.entityHit instanceof IInventory) {
@@ -237,8 +240,6 @@ public class ServerEventHandler {
         } else if (te instanceof BlockJukebox.TileEntityJukebox) {
             BlockJukebox.TileEntityJukebox realTe = ((BlockJukebox.TileEntityJukebox) te);
             processInventoryData(coord.hashCode(), player, JUKEBOX_NAME, realTe.func_145856_a());
-        } else {
-            removeInventoryData(coord, player);
         }
     }
 
@@ -313,5 +314,27 @@ public class ServerEventHandler {
 
     public void clearInventoryData() {
         mapBlockToInv.clear();
+    }
+
+    private void handleFluidHandlerBlock(WorldServer world, EntityPlayerMP player, MovingObjectPosition mo) {
+        final Coord coord = new Coord(world.provider.dimensionId, mo);
+        final int x = (int) coord.x, y = (int) coord.y, z = (int) coord.z;
+        final TileEntity te = world.getTileEntity(x, y, z);
+        if (te == null) return;
+
+        if (te instanceof IFluidHandler) {
+            processFluidHandlerData(coord.hashCode(), player, (IFluidHandler) te);
+        }
+    }
+
+    private void processFluidHandlerData(int id, EntityPlayerMP player, IFluidHandler fluidHandler) {
+        FluidHandlerData fluidHandlerData = mapBlockToFluidHandler.get(id);
+        if (fluidHandlerData == null) {
+            fluidHandlerData = new FluidHandlerData(fluidHandler, id);
+        } else {
+            fluidHandlerData.update(fluidHandler);
+        }
+        fluidHandlerData.sendIfOld(player);
+        mapBlockToFluidHandler.put(id, fluidHandlerData);
     }
 }

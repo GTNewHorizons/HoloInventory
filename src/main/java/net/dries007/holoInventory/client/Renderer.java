@@ -39,6 +39,8 @@ import net.minecraft.village.MerchantRecipe;
 import net.minecraft.village.MerchantRecipeList;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
+import net.minecraftforge.fluids.FluidTankInfo;
+import net.minecraftforge.fluids.IFluidHandler;
 
 import org.lwjgl.opengl.GL11;
 
@@ -52,6 +54,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 public class Renderer {
 
     public static final HashMap<Integer, NamedData<ItemStack[]>> tileInventoryMap = new HashMap<>();
+    public static final HashMap<Integer, List<FluidTankInfo>> tileFluidHandlerMap = new HashMap<>();
     public static final HashMap<Integer, NamedData<ItemStack[]>> entityMap = new HashMap<>();
     public static final HashMap<Integer, NamedData<MerchantRecipeList>> merchantMap = new HashMap<>();
     public static final HashMap<Integer, Long> requestMap = new HashMap<>();
@@ -66,6 +69,7 @@ public class Renderer {
     public static final Renderer INSTANCE = new Renderer();
 
     private final GroupRenderer itemGroupRenderer = new GroupRenderer();
+    private final GroupRenderer fluidGroupRenderer = new GroupRenderer();
 
     ItemFilter cachedFilter = null;
     String cachedSearch = "";
@@ -100,11 +104,14 @@ public class Renderer {
             return;
         }
         coord = new Coord(mc.theWorld.provider.dimensionId, mc.objectMouseOver);
+        itemGroupRenderer.reset();
+        fluidGroupRenderer.reset();
+        GroupRenderer.updateTime();
         switch (mc.objectMouseOver.typeOfHit) {
             case BLOCK:
                 // Remove if there is no longer a TE there
                 TileEntity te = mc.theWorld.getTileEntity((int) coord.x, (int) coord.y, (int) coord.z);
-                if (Helper.weWant(te)) {
+                if (Helper.weWant(te) || te instanceof IFluidHandler) {
                     String clazz = te.getClass().getCanonicalName();
                     // Check for local ban
                     if (Config.bannedTiles.contains(clazz)) return;
@@ -118,11 +125,18 @@ public class Renderer {
                         }
                     }
 
+                    List<FluidTankInfo> fluidTankInfos = tileFluidHandlerMap.get(coord.hashCode());
+                    if (fluidTankInfos != null && !(te instanceof IFluidHandler)) {
+                        // Render only if we know the content
+                        fluidTankInfos = null;
+                        tileFluidHandlerMap.remove(coord.hashCode());
+                    }
+
                     coord.x += 0.5;
                     coord.y += 0.5;
                     coord.z += 0.5;
                     setRenderPos(partialTicks);
-                    renderHologram(invData);
+                    renderHologram(invData, fluidTankInfos);
                 } else {
                     tileInventoryMap.remove(coord.hashCode());
                 }
@@ -173,9 +187,8 @@ public class Renderer {
         if (uiScaleFactor < 0.1) uiScaleFactor = 0.1;
         GL11.glScaled(uiScaleFactor, uiScaleFactor, uiScaleFactor);
 
-        GroupRenderer.updateTime();
         itemGroupRenderer.calculateColumns(3);
-        itemGroupRenderer.setRows(namedData.data.size());
+        itemGroupRenderer.setRows(namedData.data.size() - 1);
         itemGroupRenderer.setScale((float) (0.1f * distance));
         // merchant cannot sell more than 127 items. no need to increase spacing whatsoever
         itemGroupRenderer.setSpacing(0.6f);
@@ -183,22 +196,26 @@ public class Renderer {
 
         // Render the BG
         if (Config.colorEnable) {
-            itemGroupRenderer.renderBG();
+            GroupRenderer.renderBG(itemGroupRenderer);
         }
 
         // Render the inv name
         if (Config.renderName) {
-            itemGroupRenderer.renderName(namedData.name);
+            GroupRenderer.renderName(namedData.name, itemGroupRenderer);
         }
 
+        List<ItemStack> stacks = new ArrayList<>();
         for (int row = 0; row < namedData.data.size(); row++) {
             MerchantRecipe recipe = (MerchantRecipe) namedData.data.get(row);
-
-            itemGroupRenderer.renderItem(recipe.getItemToBuy(), 0, row, recipe.getItemToBuy().stackSize);
-            if (recipe.hasSecondItemToBuy()) itemGroupRenderer
-                    .renderItem(recipe.getSecondItemToBuy(), 1, row, recipe.getSecondItemToBuy().stackSize);
-            itemGroupRenderer.renderItem(recipe.getItemToSell(), 2, row, recipe.getItemToSell().stackSize);
+            stacks.add(recipe.getItemToBuy());
+            if (recipe.hasSecondItemToBuy()) {
+                stacks.add(recipe.getSecondItemToBuy());
+            } else {
+                stacks.add(null);
+            }
+            stacks.add(recipe.getItemToSell());
         }
+        itemGroupRenderer.renderItems(stacks);
 
         GL11.glPopMatrix();
     }
@@ -242,12 +259,18 @@ public class Renderer {
         return Arrays.asList(items);
     }
 
+    private void renderHologram(NamedData<ItemStack[]> namedData) {
+        renderHologram(namedData, null);
+    }
+
     /**
      * Render a regular hologram Does stacking first if user wants it
      *
-     * @param namedData Array of items in the inventory
+     * @param namedData      Array of items in the inventory
+     * @param fluidTankInfos List of fluids in the tile
      */
-    private void renderHologram(@Nullable NamedData<ItemStack[]> namedData) {
+    private void renderHologram(@Nullable NamedData<ItemStack[]> namedData,
+            @Nullable List<FluidTankInfo> fluidTankInfos) {
         final double distance = distance();
         if (distance < 1.5) return;
 
@@ -288,7 +311,11 @@ public class Renderer {
             list = Collections.singletonList(list.get(i));
         }
 
-        doRenderHologram(namedData != null ? namedData.name : null, list, distance);
+        doRenderHologram(
+                namedData != null ? namedData.name : null,
+                list,
+                fluidTankInfos != null ? fluidTankInfos : Collections.emptyList(),
+                distance);
     }
 
     /**
@@ -297,8 +324,9 @@ public class Renderer {
      * @param itemStacks The itemStacks that will be rendered
      * @param distance   The distance the player is from the hologram, passed to avoid 2th calculation.
      */
-    private void doRenderHologram(@Nullable String name, @Nonnull List<ItemStack> itemStacks, double distance) {
-        if (itemStacks.isEmpty()) return;
+    private void doRenderHologram(@Nullable String name, @Nonnull List<ItemStack> itemStacks,
+            @Nonnull List<FluidTankInfo> fluidTankInfos, double distance) {
+        if (itemStacks.isEmpty() && fluidTankInfos.isEmpty()) return;
         // Move to right position and rotate to face the player
         GL11.glPushMatrix();
 
@@ -307,6 +335,37 @@ public class Renderer {
         double uiScaleFactor = Config.renderScaling;
         if (uiScaleFactor < 0.1) uiScaleFactor = 0.1;
         GL11.glScaled(uiScaleFactor, uiScaleFactor, uiScaleFactor);
+
+        preRenderHologramItems(itemStacks, distance);
+        preRenderHologramFluids(fluidTankInfos, distance);
+
+        itemGroupRenderer.setOffset(fluidGroupRenderer.calculateOffset());
+
+        // Render the BG
+        if (Config.colorEnable) {
+            List<GroupRenderer> list = new ArrayList<>();
+            if (!itemStacks.isEmpty()) {
+                list.add(itemGroupRenderer);
+            }
+            if (!fluidTankInfos.isEmpty()) {
+                list.add(fluidGroupRenderer);
+            }
+            GroupRenderer.renderBG(list.toArray(new GroupRenderer[0]));
+        }
+
+        // Render the inv name
+        if (Config.renderName && name != null) {
+            GroupRenderer.renderName(name, itemGroupRenderer, fluidGroupRenderer);
+        }
+
+        renderHologramItems(itemStacks);
+        renderHologramFluids(fluidTankInfos);
+
+        GL11.glPopMatrix();
+    }
+
+    private void preRenderHologramItems(List<ItemStack> itemStacks, double distance) {
+        if (itemStacks.isEmpty()) return;
 
         // See if we need to increase spacing
         float stackSpacing = 0.6f;
@@ -319,39 +378,51 @@ public class Renderer {
             }
         }
 
-        GroupRenderer.updateTime();
         itemGroupRenderer.calculateColumns(itemStacks.size());
         itemGroupRenderer.calculateRows(itemStacks.size());
         itemGroupRenderer.setScale((float) (0.05f * distance));
         itemGroupRenderer.setSpacing(stackSpacing);
         itemGroupRenderer.setRenderText(Config.renderText);
+    }
 
-        // Render the BG
-        if (Config.colorEnable) {
-            itemGroupRenderer.renderBG();
-        }
+    private void renderHologramItems(List<ItemStack> itemStacks) {
+        if (itemStacks.isEmpty()) return;
 
-        // Render the inv name
-        if (Config.renderName && name != null) {
-            itemGroupRenderer.renderName(name);
-        }
-
-        // Render items
-        int column = 0, row = 0;
+        List<ItemStack> renderStacks = new ArrayList<>();
         for (ItemStack item : itemStacks) {
-            int stackSize = item.stackSize;
             if (!Config.renderMultiple) {
                 item = item.copy();
                 item.stackSize = 1;
             }
-            itemGroupRenderer.renderItem(item, column, row, stackSize);
-            column++;
-            if (column >= itemGroupRenderer.getColumns()) {
-                column = 0;
-                row++;
+            renderStacks.add(item);
+        }
+        itemGroupRenderer.renderItems(renderStacks);
+    }
+
+    private void preRenderHologramFluids(List<FluidTankInfo> fluidTankInfos, double distance) {
+        if (fluidTankInfos.isEmpty()) return;
+
+        // See if we need to increase spacing
+        float spacing = 0.6f;
+        if (Config.renderText) {
+            for (FluidTankInfo fluidTankInfo : fluidTankInfos) {
+                if (fluidTankInfo.fluid.amount >= 1000) {
+                    spacing = 0.8f;
+                    break;
+                }
             }
         }
-        GL11.glPopMatrix();
+
+        fluidGroupRenderer.calculateColumns(fluidTankInfos.size());
+        fluidGroupRenderer.calculateRows(fluidTankInfos.size());
+        fluidGroupRenderer.setScale((float) (0.05f * distance));
+        fluidGroupRenderer.setSpacing(spacing);
+        fluidGroupRenderer.setRenderText(Config.renderText);
+    }
+
+    private void renderHologramFluids(List<FluidTankInfo> fluidTankInfos) {
+        if (fluidTankInfos.isEmpty()) return;
+        fluidGroupRenderer.renderFluids(fluidTankInfos);
     }
 
     /**
