@@ -13,6 +13,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 
 import com.jaquadro.minecraft.storagedrawers.api.storage.IDrawerGroup;
+
 import cpw.mods.fml.common.Loader;
 
 /**
