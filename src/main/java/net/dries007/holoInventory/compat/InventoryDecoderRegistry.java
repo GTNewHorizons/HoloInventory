@@ -15,6 +15,8 @@ import net.minecraft.nbt.NBTTagList;
 import com.jaquadro.minecraft.storagedrawers.api.storage.IDrawerGroup;
 
 import cpw.mods.fml.common.Loader;
+import gregtech.api.interfaces.tileentity.IDigitalChest;
+import gregtech.api.interfaces.tileentity.IGregTechDeviceInformation;
 import mcp.mobius.betterbarrels.common.blocks.TileEntityBarrel;
 
 /**
@@ -75,6 +77,28 @@ public class InventoryDecoderRegistry {
                         int item_amount = ((TileEntityBarrel) inv).getStorage().getAmount();
                         tag.setInteger(NBT_KEY_COUNT, item_amount);
                         list.appendTag(tag);
+                    }
+                    return list;
+                }
+            });
+        }
+        if (Loader.isModLoaded("gregtech")) {
+
+            REGISTERED_INVENTORY_DECODERS.add(new InventoryDecoder(IDigitalChest.class) {
+
+                @Override
+                public NBTTagList toNBT(IInventory inv) {
+                    NBTTagList list = new NBTTagList();
+                    if (inv instanceof IGregTechDeviceInformation) {
+                        IGregTechDeviceInformation deviceInformation = ((IGregTechDeviceInformation) inv);
+                        ItemStack stack = inv.getStackInSlot(1);
+                        if (stack != null) {
+                            NBTTagCompound tag = stack.writeToNBT(new NBTTagCompound());
+                            int item_amount = stack.stackSize + Integer
+                                    .parseInt(deviceInformation.getInfoData()[3].split(" ")[0].replaceAll("§.", ""));
+                            tag.setInteger(NBT_KEY_COUNT, item_amount);
+                            list.appendTag(tag);
+                        }
                     }
                     return list;
                 }
