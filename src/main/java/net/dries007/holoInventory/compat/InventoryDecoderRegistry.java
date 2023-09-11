@@ -94,8 +94,8 @@ public class InventoryDecoderRegistry {
                         ItemStack stack = inv.getStackInSlot(1);
                         if (stack != null) {
                             NBTTagCompound tag = stack.writeToNBT(new NBTTagCompound());
-                            int item_amount = stack.stackSize + Integer
-                                    .parseInt(deviceInformation.getInfoData()[3].split(" ")[0].replaceAll("§.", ""));
+                            int item_amount = stack.stackSize + Integer.parseInt(
+                                    deviceInformation.getInfoData()[3].split(" ")[0].replaceAll("§.|[^0-9]", ""));
                             tag.setInteger(NBT_KEY_COUNT, item_amount);
                             list.appendTag(tag);
                         }
