@@ -15,8 +15,9 @@ import net.minecraft.nbt.NBTTagList;
 import com.jaquadro.minecraft.storagedrawers.api.storage.IDrawerGroup;
 
 import cpw.mods.fml.common.Loader;
-import gregtech.api.interfaces.tileentity.IDigitalChest;
-import gregtech.api.interfaces.tileentity.IGregTechDeviceInformation;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
+import gregtech.api.metatileentity.BaseMetaTileEntity;
+import gregtech.common.tileentities.storage.GT_MetaTileEntity_QuantumChest;
 import mcp.mobius.betterbarrels.common.blocks.TileEntityBarrel;
 
 /**
@@ -84,22 +85,21 @@ public class InventoryDecoderRegistry {
         }
         if (Loader.isModLoaded("gregtech")) {
 
-            REGISTERED_INVENTORY_DECODERS.add(new InventoryDecoder(IDigitalChest.class) {
+            REGISTERED_INVENTORY_DECODERS.add(new InventoryDecoder(BaseMetaTileEntity.class) {
 
                 @Override
                 public NBTTagList toNBT(IInventory inv) {
+                    IMetaTileEntity metaTileEntity = ((BaseMetaTileEntity) inv).getMetaTileEntity();
+                    if (!(metaTileEntity instanceof GT_MetaTileEntity_QuantumChest)) {
+                        return DEFAULT.toNBT(inv);
+                    }
                     NBTTagList list = new NBTTagList();
-                    if (inv instanceof IGregTechDeviceInformation) {
-                        IGregTechDeviceInformation deviceInformation = ((IGregTechDeviceInformation) inv);
-                        ItemStack stack = inv.getStackInSlot(1);
-                        if (stack != null) {
-                            NBTTagCompound tag = stack.writeToNBT(new NBTTagCompound());
-                            String samount = deviceInformation.getInfoData()[3].split(" ")[0]
-                                    .replaceAll("§.|[^0-9]", "");
-                            int item_amount = stack.stackSize + samount.length() == 0 ? 0 : Integer.parseInt(samount);
-                            tag.setInteger(NBT_KEY_COUNT, item_amount);
-                            list.appendTag(tag);
-                        }
+                    ItemStack stack = inv.getStackInSlot(1);
+                    if (stack != null) {
+                        NBTTagCompound tag = stack.writeToNBT(new NBTTagCompound());
+                        int item_amount = ((GT_MetaTileEntity_QuantumChest) metaTileEntity).mItemCount;
+                        tag.setInteger(NBT_KEY_COUNT, stack.stackSize + item_amount);
+                        list.appendTag(tag);
                     }
                     return list;
                 }
