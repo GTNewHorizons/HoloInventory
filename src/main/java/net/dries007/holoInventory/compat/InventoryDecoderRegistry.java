@@ -94,12 +94,21 @@ public class InventoryDecoderRegistry {
                         return DEFAULT.toNBT(inv);
                     }
                     NBTTagList list = new NBTTagList();
-                    ItemStack stack = inv.getStackInSlot(1);
-                    if (stack != null) {
-                        NBTTagCompound tag = stack.writeToNBT(new NBTTagCompound());
-                        int item_amount = ((GT_MetaTileEntity_QuantumChest) metaTileEntity).mItemCount;
-                        tag.setInteger(NBT_KEY_COUNT, stack.stackSize + item_amount);
-                        list.appendTag(tag);
+                    for (int i = 0; i < 2; i++) {
+                        ItemStack stack = inv.getStackInSlot(i);
+                        if (stack != null) {
+                            NBTTagCompound tag = stack.writeToNBT(new NBTTagCompound());
+                            tag.setInteger(NBT_KEY_COUNT, stack.stackSize);
+                            list.appendTag(tag);
+                            if (i == 1) {
+                                int item_amount = ((GT_MetaTileEntity_QuantumChest) metaTileEntity).mItemCount;
+                                if (item_amount > 0) {
+                                    tag = stack.writeToNBT(new NBTTagCompound());
+                                    tag.setInteger(NBT_KEY_COUNT, item_amount);
+                                    list.appendTag(tag);
+                                }
+                            }
+                        }
                     }
                     return list;
                 }
