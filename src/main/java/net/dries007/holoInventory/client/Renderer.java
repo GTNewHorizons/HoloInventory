@@ -11,6 +11,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+package net.dries007.holoInventory.client;
 
 import java.lang.reflect.Field;
 import java.nio.FloatBuffer;
