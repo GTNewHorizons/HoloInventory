@@ -43,6 +43,7 @@ import net.minecraft.village.MerchantRecipeList;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType;
+import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fluids.FluidTankInfo;
 import net.minecraftforge.fluids.IFluidHandler;
 
@@ -53,6 +54,7 @@ import codechicken.nei.ItemList;
 import codechicken.nei.NEIClientConfig;
 import codechicken.nei.SearchField;
 import codechicken.nei.api.ItemFilter;
+import cpw.mods.fml.client.FMLClientHandler;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
@@ -80,6 +82,7 @@ public class Renderer {
     String cachedSearch = "";
     private Field projectionField;
     private Field modelviewField;
+    private boolean fancyGraphics;
 
     private Renderer() {
         // Because we're using RenderGameOverlayEvent instead of RenderWorldLastEvent, we need to apply the world's
@@ -102,6 +105,11 @@ public class Renderer {
             HoloInventory.getLogger().error("Could not find matrices.");
         }
 
+    }
+
+    @SubscribeEvent
+    public void optifineIsAnnoying(RenderWorldLastEvent event) {
+        fancyGraphics = Minecraft.getMinecraft().gameSettings.fancyGraphics;
     }
 
     // change to RenderGameOverlayEvent so shaders don't effect the render.
@@ -132,6 +140,11 @@ public class Renderer {
                 || mc.objectMouseOver == null) {
             return;
         }
+
+        if (FMLClientHandler.instance().hasOptifine()) {
+            Minecraft.getMinecraft().gameSettings.fancyGraphics = fancyGraphics;
+        }
+
         coord = new Coord(mc.theWorld.provider.dimensionId, mc.objectMouseOver);
         itemGroupRenderer.reset();
         fluidGroupRenderer.reset();
@@ -195,6 +208,10 @@ public class Renderer {
                     if (entity instanceof IMerchant && merchantMap.containsKey(id)) renderMerchant(merchantMap.get(id));
                 }
                 break;
+        }
+
+        if (FMLClientHandler.instance().hasOptifine()) {
+            Minecraft.getMinecraft().gameSettings.fancyGraphics = false;
         }
     }
 
