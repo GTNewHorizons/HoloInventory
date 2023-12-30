@@ -13,8 +13,6 @@
 
 package net.dries007.holoInventory.client;
 
-import java.lang.reflect.Field;
-import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -55,7 +53,6 @@ import net.minecraftforge.fluids.IFluidHandler;
 
 import org.lwjgl.opengl.GL11;
 
-import codechicken.lib.asm.ObfMapping;
 import codechicken.nei.ItemList;
 import codechicken.nei.NEIClientConfig;
 import codechicken.nei.SearchField;
@@ -86,32 +83,7 @@ public class Renderer {
 
     ItemFilter cachedFilter = null;
     String cachedSearch = "";
-    private Field projectionField;
-    private Field modelviewField;
     private boolean fancyGraphics;
-
-    private Renderer() {
-        // Because we're using RenderGameOverlayEvent instead of RenderWorldLastEvent, we need to apply the world's
-        // projection and modelview matrices ourselves. Getting access to them is easier said than done. They are stored
-        // in ActiveRenderInfo, and they're private with no methods to access them. We must use reflection.
-        try {
-            if (ObfMapping.obfuscated) {
-                // noinspection JavaReflectionMemberAccess
-                projectionField = ActiveRenderInfo.class.getDeclaredField("field_74595_k");
-                // noinspection JavaReflectionMemberAccess
-                modelviewField = ActiveRenderInfo.class.getDeclaredField("field_74594_j");
-            } else {
-                projectionField = ActiveRenderInfo.class.getDeclaredField("projection");
-                modelviewField = ActiveRenderInfo.class.getDeclaredField("modelview");
-            }
-
-            projectionField.setAccessible(true);
-            modelviewField.setAccessible(true);
-        } catch (NoSuchFieldException e) {
-            HoloInventory.getLogger().error("Could not find matrices.");
-        }
-
-    }
 
     @SubscribeEvent
     public void optifineIsAnnoying(RenderWorldLastEvent event) {
@@ -387,19 +359,10 @@ public class Renderer {
         GL11.glMatrixMode(GL11.GL_PROJECTION);
         GL11.glPushMatrix();
 
-        try {
-            GL11.glMatrixMode(GL11.GL_PROJECTION);
-            GL11.glLoadMatrix((FloatBuffer) projectionField.get(null));
-            GL11.glMatrixMode(GL11.GL_MODELVIEW);
-            GL11.glLoadMatrix((FloatBuffer) modelviewField.get(null));
-        } catch (IllegalAccessException | NullPointerException e) {
-            GL11.glMatrixMode(GL11.GL_PROJECTION);
-            GL11.glPopMatrix();
-            GL11.glMatrixMode(GL11.GL_MODELVIEW);
-            GL11.glPopMatrix();
-            GL11.glEnable(GL11.GL_BLEND);
-            return;
-        }
+        GL11.glMatrixMode(GL11.GL_PROJECTION);
+        GL11.glLoadMatrix(ActiveRenderInfo.projection);
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);
+        GL11.glLoadMatrix(ActiveRenderInfo.modelview);
 
         // Move to right position and rotate to face the player
         moveAndRotate(-1);
