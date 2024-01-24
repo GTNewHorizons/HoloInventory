@@ -21,12 +21,14 @@ import java.util.Map;
 
 import net.minecraftforge.common.config.Configuration;
 
+import cpw.mods.fml.common.Loader;
+
 public class Config {
 
     private static Configuration configuration;
     private final File file;
 
-    public static boolean requireGlasses = true;
+    public static boolean requireGlasses = Loader.isModLoaded("dreamcraft");
     public static boolean colorEnable = false;
     public static int colorAlpha = 200;
     public static int colorR = 14;
