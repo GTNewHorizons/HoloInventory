@@ -71,6 +71,8 @@ public class Renderer {
 
     private Coord coord;
     public boolean enabled = true;
+    // used in Angelica to control when this renderer should be active
+    public boolean angelicaOverride = false;
 
     // copy of RenderManager#renderPosX and its cousins. we need to calculate these ourselves as they can be broken
     // by optifine
@@ -91,9 +93,9 @@ public class Renderer {
     }
 
     // change to RenderGameOverlayEvent so shaders don't effect the render.
-    @SubscribeEvent
+    @SubscribeEvent()
     public void renderEvent(RenderGameOverlayEvent event) {
-        if (!enabled || event.type != ElementType.HELMET) {
+        if (!enabled || event.type != ElementType.HELMET || angelicaOverride) {
             return;
         }
         final EntityPlayer player = Minecraft.getMinecraft().thePlayer;
