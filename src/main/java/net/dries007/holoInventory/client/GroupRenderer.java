@@ -10,6 +10,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.item.ItemStack;
@@ -165,10 +166,14 @@ public class GroupRenderer {
         GL11.glTranslatef(width - ((column + 0.2f) * scale * spacing), height - ((row + 0.05f) * scale * spacing), 0f);
         GL11.glTranslatef(0, offset, 0);
         GL11.glScalef(scale, scale, scale);
-        if (Minecraft.getMinecraft().gameSettings.fancyGraphics)
+        RenderItem.renderInFrame = true;
+        if (Minecraft.getMinecraft().gameSettings.fancyGraphics) {
             GL11.glRotatef(Config.rotateItems ? time : 0f, 0.0F, 1.0F, 0.0F);
-        else GL11.glRotatef(RenderManager.instance.playerViewY, 0.0F, 1.0F, 0.0F);
+        } else {
+            GL11.glRotatef(180.0F, 0.0F, 1.0F, 0.0F);
+        }
         ClientHandler.RENDER_ITEM.doRender(fakeEntityItem, 0, 0, 0, 0, 0);
+        RenderItem.renderInFrame = false;
         GL11.glPopMatrix();
         RenderHelper.disableStandardItemLighting();
         if (renderText && stackSizeText != null) {
