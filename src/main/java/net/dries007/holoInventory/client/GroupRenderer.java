@@ -44,8 +44,8 @@ public class GroupRenderer {
             final MethodHandles.Lookup lookup = MethodHandles.publicLookup();
             fancyItemsSetter = lookup.findStaticSetter(notfineSettingsManager, "droppedItemDetail", boolean.class);
             fancyItemsGetter = lookup.findStaticGetter(notfineSettingsManager, "droppedItemDetail", boolean.class);
-            boolean _ignored = (boolean) fancyItemsGetter.invokeExact();
-            fancyItemsSetter.invokeExact((boolean) _ignored);
+            boolean currentValue = (boolean) fancyItemsGetter.invokeExact();
+            fancyItemsSetter.invokeExact((boolean) currentValue);
         } catch (Throwable t) {
             fancyItemsSetter = null;
             fancyItemsGetter = null;
