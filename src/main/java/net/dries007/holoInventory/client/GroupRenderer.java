@@ -170,9 +170,13 @@ public class GroupRenderer {
         if (Minecraft.getMinecraft().gameSettings.fancyGraphics) {
             GL11.glRotatef(Config.rotateItems ? time : 0f, 0.0F, 1.0F, 0.0F);
         } else {
-            GL11.glRotatef(180.0F, 0.0F, 1.0F, 0.0F);
+            // Ensure flat items render from both sides
+            GL11.glDisable(GL11.GL_CULL_FACE);
         }
         ClientHandler.RENDER_ITEM.doRender(fakeEntityItem, 0, 0, 0, 0, 0);
+        if (!Minecraft.getMinecraft().gameSettings.fancyGraphics) {
+            GL11.glEnable(GL11.GL_CULL_FACE);
+        }
         RenderItem.renderInFrame = false;
         GL11.glPopMatrix();
         RenderHelper.disableStandardItemLighting();
