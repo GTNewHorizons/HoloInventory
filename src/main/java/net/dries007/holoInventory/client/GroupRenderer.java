@@ -1,5 +1,7 @@
 package net.dries007.holoInventory.client;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.text.DecimalFormat;
 import java.util.List;
 
@@ -23,6 +25,8 @@ import net.minecraftforge.fluids.FluidTankInfo;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
+import com.google.common.base.Throwables;
+
 /**
  * Keeps track of render scale, spacing, etc. to draw a set of icons prettier
  */
@@ -31,6 +35,24 @@ public class GroupRenderer {
     private static float time;
     private final EntityItem fakeEntityItem = new EntityItem(Minecraft.getMinecraft().theWorld);
     private static final int TEXT_COLOR = 255 + (255 << 8) + (255 << 16) + (170 << 24);
+    private static final MethodHandle angelicaFancyItemsSetter, angelicaFancyItemsGetter;
+
+    static {
+        MethodHandle fancyItemsSetter, fancyItemsGetter;
+        try {
+            final Class<?> notfineSettingsManager = Class.forName("jss.notfine.core.SettingsManager");
+            final MethodHandles.Lookup lookup = MethodHandles.publicLookup();
+            fancyItemsSetter = lookup.findStaticSetter(notfineSettingsManager, "droppedItemDetail", boolean.class);
+            fancyItemsGetter = lookup.findStaticGetter(notfineSettingsManager, "droppedItemDetail", boolean.class);
+            boolean _ignored = (boolean) fancyItemsGetter.invokeExact();
+            fancyItemsSetter.invokeExact((boolean) _ignored);
+        } catch (Throwable t) {
+            fancyItemsSetter = null;
+            fancyItemsGetter = null;
+        }
+        angelicaFancyItemsSetter = fancyItemsSetter;
+        angelicaFancyItemsGetter = fancyItemsGetter;
+    }
 
     // changed with an attached debugger..
     static int stackSizeDebugOverride = 0;
@@ -167,15 +189,28 @@ public class GroupRenderer {
         GL11.glTranslatef(0, offset, 0);
         GL11.glScalef(scale, scale, scale);
         RenderItem.renderInFrame = true;
-        if (Minecraft.getMinecraft().gameSettings.fancyGraphics) {
-            GL11.glRotatef(Config.rotateItems ? time : 0f, 0.0F, 1.0F, 0.0F);
+        GL11.glRotatef(Config.rotateItems ? time : 180f, 0.0F, 1.0F, 0.0F);
+        final boolean oldFancyGraphics;
+        if (angelicaFancyItemsSetter != null) {
+            try {
+                oldFancyGraphics = (boolean) angelicaFancyItemsGetter.invokeExact();
+                angelicaFancyItemsSetter.invokeExact(true);
+            } catch (Throwable t) {
+                throw Throwables.propagate(t);
+            }
         } else {
-            // Ensure flat items render from both sides
-            GL11.glDisable(GL11.GL_CULL_FACE);
+            oldFancyGraphics = Minecraft.getMinecraft().gameSettings.fancyGraphics;
+            Minecraft.getMinecraft().gameSettings.fancyGraphics = true;
         }
         ClientHandler.RENDER_ITEM.doRender(fakeEntityItem, 0, 0, 0, 0, 0);
-        if (!Minecraft.getMinecraft().gameSettings.fancyGraphics) {
-            GL11.glEnable(GL11.GL_CULL_FACE);
+        if (angelicaFancyItemsSetter != null) {
+            try {
+                angelicaFancyItemsSetter.invokeExact((boolean) oldFancyGraphics);
+            } catch (Throwable t) {
+                throw Throwables.propagate(t);
+            }
+        } else {
+            Minecraft.getMinecraft().gameSettings.fancyGraphics = oldFancyGraphics;
         }
         RenderItem.renderInFrame = false;
         GL11.glPopMatrix();
