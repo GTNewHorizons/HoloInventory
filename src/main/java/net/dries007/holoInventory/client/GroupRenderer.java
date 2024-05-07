@@ -27,6 +27,8 @@ import org.lwjgl.opengl.GL12;
 
 import com.google.common.base.Throwables;
 
+import twilightforest.item.TFItems;
+
 /**
  * Keeps track of render scale, spacing, etc. to draw a set of icons prettier
  */
@@ -148,7 +150,18 @@ public class GroupRenderer {
      */
     private void renderItem(ItemStack itemStack, int column, int row) {
         if (itemStack == null) return;
-        ItemStack renderStack = itemStack.copy();
+        ItemStack renderStack;
+
+        // TF magic map uses a different item entity renderer which causes issues with holo and Angelica
+        // couldn't figure a way to get it to work in TF but not break anything so lets go with this
+        // solution: render empty magic map instead
+        if (HoloInventory.isTFLoaded && itemStack.getUnlocalizedName().equalsIgnoreCase("item.magicmap")) {
+            // max stack size is 1 for the original map so lets hardcode it
+            renderStack = new ItemStack(TFItems.emptyMagicMap, 1, 0);
+        } else {
+            renderStack = itemStack.copy();
+        }
+
         if (!Config.renderMultiple) {
             renderStack.stackSize = 1;
         }
