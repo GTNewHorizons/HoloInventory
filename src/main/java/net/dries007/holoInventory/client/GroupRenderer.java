@@ -160,18 +160,14 @@ public class GroupRenderer {
 
             if (itemStack.getUnlocalizedName().equalsIgnoreCase("item.magicmap")) {
                 renderStack = new ItemStack(TFItems.emptyMagicMap, 1, 0);
-            }
-            else if (itemStack.getUnlocalizedName().equalsIgnoreCase("item.mazemap")) {
+            } else if (itemStack.getUnlocalizedName().equalsIgnoreCase("item.mazemap")) {
                 renderStack = new ItemStack(TFItems.emptyMazeMap, 1, 0);
-            }
-            else if (itemStack.getUnlocalizedName().equalsIgnoreCase("item.oremap")) {
+            } else if (itemStack.getUnlocalizedName().equalsIgnoreCase("item.oremap")) {
                 renderStack = new ItemStack(TFItems.emptyOreMap, 1, 0);
             }
         }
 
-        if (renderStack == null)
-            renderStack = itemStack.copy();
-
+        if (renderStack == null) renderStack = itemStack.copy();
 
         if (!Config.renderMultiple) {
             renderStack.stackSize = 1;
