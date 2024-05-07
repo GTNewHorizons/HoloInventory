@@ -150,17 +150,28 @@ public class GroupRenderer {
      */
     private void renderItem(ItemStack itemStack, int column, int row) {
         if (itemStack == null) return;
-        ItemStack renderStack;
+        ItemStack renderStack = null;
 
-        // TF magic map uses a different item entity renderer which causes issues with holo and Angelica
+        // TF maps uses a different item entity renderer which causes issues with holo and Angelica
         // couldn't figure a way to get it to work in TF but not break anything so lets go with this
-        // solution: render empty magic map instead
-        if (HoloInventory.isTFLoaded && itemStack.getUnlocalizedName().equalsIgnoreCase("item.magicmap")) {
+        // solution: render empty map type instead
+        if (HoloInventory.isTFLoaded) {
             // max stack size is 1 for the original map so lets hardcode it
-            renderStack = new ItemStack(TFItems.emptyMagicMap, 1, 0);
-        } else {
-            renderStack = itemStack.copy();
+
+            if (itemStack.getUnlocalizedName().equalsIgnoreCase("item.magicmap")) {
+                renderStack = new ItemStack(TFItems.emptyMagicMap, 1, 0);
+            }
+            else if (itemStack.getUnlocalizedName().equalsIgnoreCase("item.mazemap")) {
+                renderStack = new ItemStack(TFItems.emptyMazeMap, 1, 0);
+            }
+            else if (itemStack.getUnlocalizedName().equalsIgnoreCase("item.oremap")) {
+                renderStack = new ItemStack(TFItems.emptyOreMap, 1, 0);
+            }
         }
+
+        if (renderStack == null)
+            renderStack = itemStack.copy();
+
 
         if (!Config.renderMultiple) {
             renderStack.stackSize = 1;
