@@ -15,6 +15,7 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.entity.item.EntityItem;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
@@ -27,6 +28,8 @@ import org.lwjgl.opengl.GL12;
 
 import com.google.common.base.Throwables;
 
+import twilightforest.item.TFItems;
+
 /**
  * Keeps track of render scale, spacing, etc. to draw a set of icons prettier
  */
@@ -36,6 +39,8 @@ public class GroupRenderer {
     private final EntityItem fakeEntityItem = new EntityItem(Minecraft.getMinecraft().theWorld);
     private static final int TEXT_COLOR = 255 + (255 << 8) + (255 << 16) + (170 << 24);
     private static final MethodHandle angelicaFancyItemsSetter, angelicaFancyItemsGetter;
+    // used for TF maps that cause issues with angelica and holoinventory
+    private static final ItemStack emptyMagicMap, emptyMazeMap, emptyOreMap;
 
     static {
         MethodHandle fancyItemsSetter, fancyItemsGetter;
@@ -52,6 +57,16 @@ public class GroupRenderer {
         }
         angelicaFancyItemsSetter = fancyItemsSetter;
         angelicaFancyItemsGetter = fancyItemsGetter;
+
+        if (HoloInventory.isTFLoaded) {
+            emptyMagicMap = new ItemStack(TFItems.emptyMagicMap);
+            emptyMazeMap = new ItemStack(TFItems.emptyMazeMap);
+            emptyOreMap = new ItemStack(TFItems.emptyOreMap);
+        } else {
+            emptyMagicMap = null;
+            emptyMazeMap = null;
+            emptyOreMap = null;
+        }
     }
 
     // changed with an attached debugger..
@@ -148,7 +163,24 @@ public class GroupRenderer {
      */
     private void renderItem(ItemStack itemStack, int column, int row) {
         if (itemStack == null) return;
-        ItemStack renderStack = itemStack.copy();
+        ItemStack renderStack = null;
+
+        // TF maps uses a different item entity renderer which causes issues with holo and Angelica
+        // couldn't figure a way to get it to work in TF but not break anything so lets go with this
+        // solution: render empty map type instead
+        if (HoloInventory.isTFLoaded) {
+            Item renderItem = itemStack.getItem();
+            if (renderItem == TFItems.magicMap) {
+                renderStack = emptyMagicMap;
+            } else if (renderItem == TFItems.oreMap) {
+                renderStack = emptyOreMap;
+            } else if (renderItem == TFItems.mazeMap) {
+                renderStack = emptyMazeMap;
+            }
+        }
+
+        if (renderStack == null) renderStack = itemStack.copy();
+
         if (!Config.renderMultiple) {
             renderStack.stackSize = 1;
         }
