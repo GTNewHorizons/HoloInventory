@@ -114,7 +114,7 @@ public class Renderer {
         final Minecraft mc = Minecraft.getMinecraft();
         if (mc.renderEngine == null || RenderManager.instance == null
                 || RenderManager.instance.getFontRenderer() == null
-                || mc.gameSettings.thirdPersonView != 0
+                || (mc.gameSettings.thirdPersonView != 0 && !Config.renderThirdPerson)
                 || mc.objectMouseOver == null) {
             return;
         }

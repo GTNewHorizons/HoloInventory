@@ -37,6 +37,7 @@ public class Config {
     public static int syncFreq = 2;
     public static boolean renderText = true;
     public static boolean renderSuffixDarkened = true;
+    public static boolean renderThirdPerson = false;
     public static boolean renderMultiple = true;
     public static boolean enableStacking = true;
     public static boolean renderName = true;
@@ -141,6 +142,9 @@ public class Config {
                 "renderSuffixDarkened",
                 renderSuffixDarkened,
                 "Render the stacksize suffix darkened").getBoolean(true);
+        renderThirdPerson = configuration
+                .get(HoloInventory.MODID, "renderThirdPerson", renderThirdPerson, "Render in third person mode")
+                .getBoolean(false);
         renderMultiple = configuration.get(
                 HoloInventory.MODID,
                 "renderMultiple",
