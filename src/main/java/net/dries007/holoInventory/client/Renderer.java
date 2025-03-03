@@ -92,7 +92,7 @@ public class Renderer {
 
     // change to RenderGameOverlayEvent so shaders don't effect the render.
     @SubscribeEvent
-    public void renderEvent(RenderGameOverlayEvent event) {
+    public void renderEvent(RenderGameOverlayEvent.Post event) {
         if (!enabled || event.type != ElementType.HELMET || angelicaOverride) {
             return;
         }
