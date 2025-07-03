@@ -113,7 +113,7 @@ public class HoloGlasses extends ItemArmor implements IHoloGlasses, IBauble, IAc
     @Override
     @Method(modid = "Baubles")
     public BaubleType getBaubleType(ItemStack arg0) {
-        return BaubleType.RING;
+        return BaubleType.HEAD;
     }
 
     @Override
