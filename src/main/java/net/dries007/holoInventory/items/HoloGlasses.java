@@ -57,9 +57,9 @@ public class HoloGlasses extends ItemArmor implements IHoloGlasses, IBauble, IAc
     }
 
     public static ItemStack getHoloGlasses(World world, EntityPlayer player) {
-        if (player.inventory.getStackInSlot(39) != null
-                && player.inventory.getStackInSlot(39).getItem() instanceof IHoloGlasses)
-            return player.inventory.getStackInSlot(39);
+        if (player.inventory.armorItemInSlot(3) != null
+                && player.inventory.armorItemInSlot(3).getItem() instanceof IHoloGlasses)
+            return player.inventory.armorItemInSlot(3);
 
         if (HoloInventory.isBaublesLoaded) {
             IInventory inventory = BaublesApi.getBaubles(player);
