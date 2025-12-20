@@ -5,7 +5,7 @@ dependencies {
 	compileOnly('com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-516-GTNH:dev') { transitive = false }
 	compileOnly('com.github.GTNewHorizons:Baubles:1.0.4:dev') { transitive = false }
 	compileOnly("com.github.GTNewHorizons:TinkersConstruct:1.13.1-GTNH:dev") { transitive = false }
-	compileOnly("com.github.GTNewHorizons:StorageDrawers:2.0.5-GTNH:dev") { transitive = false }
+	compileOnly("com.github.GTNewHorizons:StorageDrawers:2.0.5-GTNH:dev")
 	compileOnly("com.github.GTNewHorizons:Jabba:1.5.0:dev") { transitive = false }
 	compileOnly('curse.maven:minefactory-reloaded-66672:2366150') { transitive = false }
 	compileOnly("com.github.GTNewHorizons:twilightforest:2.7.1:dev") { transitive = false }
