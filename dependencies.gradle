@@ -1,14 +1,14 @@
 // Add your dependencies here
 
 dependencies {
-    implementation("com.github.GTNewHorizons:NotEnoughItems:2.7.77-GTNH:dev")
-    compileOnly('com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-676-GTNH:dev') { transitive = false }
-    compileOnly('com.github.GTNewHorizons:Baubles-Expanded:2.1.13-GTNH:dev') { transitive = false }
-    compileOnly("com.github.GTNewHorizons:TinkersConstruct:1.13.49-GTNH:dev") { transitive = false }
-    compileOnly("com.github.GTNewHorizons:StorageDrawers:2.1.6-GTNH:dev") { transitive = false }
-    compileOnly("com.github.GTNewHorizons:Jabba:1.5.10:dev") { transitive = false }
+    implementation("com.github.GTNewHorizons:NotEnoughItems:2.8.43-GTNH:dev")
+    compileOnly('com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-762-GTNH:dev') { transitive = false }
+    compileOnly('com.github.GTNewHorizons:Baubles-Expanded:2.2.4-GTNH:dev') { transitive = false }
+    compileOnly("com.github.GTNewHorizons:TinkersConstruct:1.14.17-GTNH:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:StorageDrawers:2.2.5-GTNH:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:Jabba:1.5.16:dev") { transitive = false }
     compileOnly('curse.maven:minefactory-reloaded-66672:2366150') { transitive = false }
-    compileOnly("com.github.GTNewHorizons:twilightforest:2.7.11:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:twilightforest:2.7.13:dev") { transitive = false }
     // for testing
-    //runtimeOnlyNonPublishable("com.github.GTNewHorizons:GT5-Unofficial:5.09.51.429:dev")
+    //runtimeOnlyNonPublishable("com.github.GTNewHorizons:GT5-Unofficial:5.09.52.154:dev")
 }
