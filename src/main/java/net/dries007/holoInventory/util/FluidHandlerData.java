@@ -1,8 +1,6 @@
 package net.dries007.holoInventory.util;
 
-import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_CAPACITY;
-import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_ID;
-import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_TANK;
+import static net.dries007.holoInventory.util.NBTKeys.*;
 
 import java.lang.ref.WeakReference;
 import java.util.WeakHashMap;
@@ -49,12 +47,13 @@ public class FluidHandlerData {
         if (tankInfos == null) return tagList;
 
         for (FluidTankInfo tankInfo : tankInfos) {
+            if (tankInfo == null) continue;
+            if (tankInfo.fluid == null) continue;
+
             NBTTagCompound fluidTag = new NBTTagCompound();
-            if (tankInfo.fluid != null) {
-                tankInfo.fluid.writeToNBT(fluidTag);
-                fluidTag.setInteger(NBT_KEY_CAPACITY, tankInfo.capacity);
-                tagList.appendTag(fluidTag);
-            }
+            tankInfo.fluid.writeToNBT(fluidTag);
+            fluidTag.setInteger(NBT_KEY_CAPACITY, tankInfo.capacity);
+            tagList.appendTag(fluidTag);
         }
         return tagList;
     }
