@@ -70,7 +70,7 @@ public class BlockInventoryMessage implements IMessage {
             for (int i = 0; i < count; i++) {
                 NBTTagCompound tag = list.getCompoundTagAt(i);
                 ItemStack stack = ItemStack.loadItemStackFromNBT(tag);
-                if (stack != null && stack.stackSize > 0) {
+                if (stack != null) {
                     stack.stackSize = tag.getInteger(NBT_KEY_COUNT);
                     stacksList.add(stack);
                 }
