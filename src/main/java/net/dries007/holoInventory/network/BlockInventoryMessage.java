@@ -80,7 +80,7 @@ public class BlockInventoryMessage implements IMessage {
                     if (stack == null) continue;
 
                     stack.stackSize = tag.getInteger(NBT_KEY_COUNT);
-                    if (stack.stackSize <= 0) continue;
+                    if (stack.stackSize < 0) continue;
 
                     ItemId key = ItemId.createNoCopy(stack);
 
@@ -98,7 +98,7 @@ public class BlockInventoryMessage implements IMessage {
                     ItemStack template = templates.get(key);
                     if (template == null) continue;
 
-                    while (total > 0) {
+                    while (total >= 0) {
                         int part = (int) Math.min(Integer.MAX_VALUE, total);
 
                         ItemStack copy = template.copy();
@@ -106,6 +106,7 @@ public class BlockInventoryMessage implements IMessage {
 
                         finalList.add(copy);
                         total -= part;
+                        if (total == 0) break;
                     }
                 }
 
