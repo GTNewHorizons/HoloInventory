@@ -65,18 +65,67 @@ public class BlockInventoryMessage implements IMessage {
             final NBTTagList list = dataTag.getTagList(NBT_KEY_LIST, Constants.NBT.TAG_COMPOUND);
             final int count = list.tagCount();
 
-            List<ItemStack> stacksList = new ArrayList<>(count);
+            ItemStack[] itemStacks;
 
-            for (int i = 0; i < count; i++) {
-                NBTTagCompound tag = list.getCompoundTagAt(i);
-                ItemStack stack = ItemStack.loadItemStackFromNBT(tag);
-                if (stack != null) {
+            if (Config.enableStacking) {
+                Object2ObjectOpenCustomHashMap<ItemId, Long> mergedCounts = new Object2ObjectOpenCustomHashMap<>(
+                        ItemId.ITEM_META_NBT_STRATEGY);
+
+                Object2ObjectOpenCustomHashMap<ItemId, ItemStack> templates = new Object2ObjectOpenCustomHashMap<>(
+                        ItemId.ITEM_META_NBT_STRATEGY);
+
+                for (int i = 0; i < count; i++) {
+                    NBTTagCompound tag = list.getCompoundTagAt(i);
+                    ItemStack stack = ItemStack.loadItemStackFromNBT(tag);
+                    if (stack == null) continue;
+
                     stack.stackSize = tag.getInteger(NBT_KEY_COUNT);
-                    stacksList.add(stack);
-                }
-            }
+                    if (stack.stackSize <= 0) continue;
 
-            ItemStack[] itemStacks = stacksList.toArray(new ItemStack[0]);
+                    ItemId key = ItemId.createNoCopy(stack);
+
+                    mergedCounts.merge(key, (long) stack.stackSize, Long::sum);
+
+                    templates.putIfAbsent(key, stack.copy());
+                }
+
+                List<ItemStack> finalList = new ArrayList<>();
+
+                for (Object2ObjectOpenCustomHashMap.Entry<ItemId, Long> entry : mergedCounts.object2ObjectEntrySet()) {
+                    ItemId key = entry.getKey();
+                    long total = entry.getValue();
+
+                    ItemStack template = templates.get(key);
+                    if (template == null) continue;
+
+                    while (total > 0) {
+                        int part = (int) Math.min(Integer.MAX_VALUE, total);
+
+                        ItemStack copy = template.copy();
+                        copy.stackSize = part;
+
+                        finalList.add(copy);
+                        total -= part;
+                    }
+                }
+
+                itemStacks = finalList.toArray(new ItemStack[0]);
+
+            } else {
+
+                List<ItemStack> stacksList = new ArrayList<>(count);
+
+                for (int i = 0; i < count; i++) {
+                    NBTTagCompound tag = list.getCompoundTagAt(i);
+                    ItemStack stack = ItemStack.loadItemStackFromNBT(tag);
+                    if (stack != null) {
+                        stack.stackSize = tag.getInteger(NBT_KEY_COUNT);
+                        stacksList.add(stack);
+                    }
+                }
+
+                itemStacks = stacksList.toArray(new ItemStack[0]);
+            }
 
             NamedData<ItemStack[]> data;
             if (clazz != null) {
@@ -85,33 +134,8 @@ public class BlockInventoryMessage implements IMessage {
                 data = new NamedData<>(name, itemStacks);
             }
 
-            if (Config.enableStacking) {
-                data.data = mergeStacks(data.data);
-            }
-
             Renderer.tileInventoryMap.put(tileId, data);
             return null;
-        }
-
-        public static ItemStack[] mergeStacks(ItemStack[] input) {
-            Object2ObjectOpenCustomHashMap<ItemId, ItemStack> merged = new Object2ObjectOpenCustomHashMap<>(
-                    ItemId.ITEM_META_NBT_STRATEGY);
-
-            for (ItemStack stack : input) {
-                if (stack == null || stack.stackSize == 0) continue;
-
-                ItemId key = ItemId.createNoCopy(stack);
-
-                ItemStack existing = merged.get(key);
-                if (existing == null) {
-                    merged.put(key, stack.copy());
-                } else {
-                    long sum = (long) existing.stackSize + stack.stackSize;
-                    existing.stackSize = (int) Math.min(Integer.MAX_VALUE, sum);
-                }
-            }
-
-            return merged.values().toArray(new ItemStack[0]);
         }
     }
 }
