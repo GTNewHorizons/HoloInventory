@@ -17,11 +17,14 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.common.util.Constants;
 
+import com.gtnewhorizon.gtnhlib.util.data.ItemId;
+
 import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import io.netty.buffer.ByteBuf;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenCustomHashMap;
 
 /**
  * Server -> Client
@@ -51,53 +54,88 @@ public class BlockInventoryMessage implements IMessage {
 
         @Override
         public IMessage onMessage(BlockInventoryMessage message, MessageContext ctx) {
-            if (message == null || message.data == null) return null; // hun?
-            if (ctx.side.isClient()) {
-                NBTTagList list = message.data.getTagList(NBT_KEY_LIST, Constants.NBT.TAG_COMPOUND);
-                ItemStack[] itemStacks = new ItemStack[list.tagCount()];
-                for (int i = 0; i < list.tagCount(); i++) {
-                    NBTTagCompound tag = list.getCompoundTagAt(i);
-                    itemStacks[i] = ItemStack.loadItemStackFromNBT(tag);
-                    if (itemStacks[i] != null) itemStacks[i].stackSize = tag.getInteger(NBT_KEY_COUNT);
-                }
-                NamedData<ItemStack[]> data;
-                if (message.data.hasKey(NBT_KEY_CLASS)) data = new NamedData<>(
-                        message.data.getString(NBT_KEY_NAME),
-                        message.data.getString(NBT_KEY_CLASS),
-                        itemStacks);
-                else data = new NamedData<>(message.data.getString(NBT_KEY_NAME), itemStacks);
-                if (Config.enableStacking) {
-                    List<ItemStack> stacks = new ArrayList<>();
-                    for (ItemStack stackToAdd : data.data) {
-                        if (stackToAdd.stackSize == 0) {
-                            stacks.add(stackToAdd);
-                            continue;
-                        }
-                        int remainingAmount = stackToAdd.stackSize;
-                        for (ItemStack stackInList : stacks) {
-                            if (stackInList == null) continue;
+            if (message == null || message.data == null) return null;
+            if (!ctx.side.isClient()) return null;
 
-                            if (stackToAdd.isItemEqual(stackInList)
-                                    && ItemStack.areItemStackTagsEqual(stackToAdd, stackInList)) {
-                                int toMerge = Math.min(remainingAmount, Integer.MAX_VALUE - stackInList.stackSize);
-                                if (toMerge > 0) {
-                                    stackInList.stackSize += toMerge;
-                                    remainingAmount -= toMerge;
-                                }
-                                if (remainingAmount <= 0) break;
-                            }
-                        }
-                        if (remainingAmount != 0) {
-                            ItemStack remainingStack = stackToAdd.copy();
-                            remainingStack.stackSize = remainingAmount;
-                            stacks.add(remainingStack);
-                        }
-                    }
-                    data.data = stacks.toArray(new ItemStack[0]);
+            final NBTTagCompound dataTag = message.data;
+            final int tileId = dataTag.getInteger(NBT_KEY_ID);
+            final String name = dataTag.getString(NBT_KEY_NAME);
+            final String clazz = dataTag.hasKey(NBT_KEY_CLASS) ? dataTag.getString(NBT_KEY_CLASS) : null;
+
+            final NBTTagList list = dataTag.getTagList(NBT_KEY_LIST, Constants.NBT.TAG_COMPOUND);
+            final int count = list.tagCount();
+
+            ItemStack[] itemStacks;
+
+            if (Config.enableStacking) {
+                Object2ObjectOpenCustomHashMap<ItemId, Long> mergedCounts = new Object2ObjectOpenCustomHashMap<>(
+                        ItemId.ITEM_META_NBT_STRATEGY);
+
+                Object2ObjectOpenCustomHashMap<ItemId, ItemStack> templates = new Object2ObjectOpenCustomHashMap<>(
+                        ItemId.ITEM_META_NBT_STRATEGY);
+
+                for (int i = 0; i < count; i++) {
+                    NBTTagCompound tag = list.getCompoundTagAt(i);
+                    ItemStack stack = ItemStack.loadItemStackFromNBT(tag);
+                    if (stack == null) continue;
+
+                    stack.stackSize = tag.getInteger(NBT_KEY_COUNT);
+                    if (stack.stackSize < 0) continue;
+
+                    ItemId key = ItemId.createNoCopy(stack);
+
+                    mergedCounts.merge(key, (long) stack.stackSize, Long::sum);
+
+                    templates.putIfAbsent(key, stack.copy());
                 }
-                Renderer.tileInventoryMap.put(message.data.getInteger(NBT_KEY_ID), data);
+
+                List<ItemStack> finalList = new ArrayList<>();
+
+                for (Object2ObjectOpenCustomHashMap.Entry<ItemId, Long> entry : mergedCounts.object2ObjectEntrySet()) {
+                    ItemId key = entry.getKey();
+                    long total = entry.getValue();
+
+                    ItemStack template = templates.get(key);
+                    if (template == null) continue;
+
+                    while (total >= 0) {
+                        int part = (int) Math.min(Integer.MAX_VALUE, total);
+
+                        ItemStack copy = template.copy();
+                        copy.stackSize = part;
+
+                        finalList.add(copy);
+                        total -= part;
+                        if (total == 0) break;
+                    }
+                }
+
+                itemStacks = finalList.toArray(new ItemStack[0]);
+
+            } else {
+
+                List<ItemStack> stacksList = new ArrayList<>(count);
+
+                for (int i = 0; i < count; i++) {
+                    NBTTagCompound tag = list.getCompoundTagAt(i);
+                    ItemStack stack = ItemStack.loadItemStackFromNBT(tag);
+                    if (stack != null) {
+                        stack.stackSize = tag.getInteger(NBT_KEY_COUNT);
+                        stacksList.add(stack);
+                    }
+                }
+
+                itemStacks = stacksList.toArray(new ItemStack[0]);
             }
 
+            NamedData<ItemStack[]> data;
+            if (clazz != null) {
+                data = new NamedData<>(name, clazz, itemStacks);
+            } else {
+                data = new NamedData<>(name, itemStacks);
+            }
+
+            Renderer.tileInventoryMap.put(tileId, data);
             return null;
         }
     }
