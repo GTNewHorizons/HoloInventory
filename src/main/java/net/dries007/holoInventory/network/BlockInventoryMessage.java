@@ -24,6 +24,9 @@ import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import io.netty.buffer.ByteBuf;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenCustomHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenCustomHashMap;
 
 /**
@@ -68,10 +71,9 @@ public class BlockInventoryMessage implements IMessage {
             ItemStack[] itemStacks;
 
             if (Config.enableStacking) {
-                Object2ObjectOpenCustomHashMap<ItemId, Long> mergedCounts = new Object2ObjectOpenCustomHashMap<>(
-                        ItemId.ITEM_META_NBT_STRATEGY);
+                Object2LongMap<ItemId> mergedCounts = new Object2LongOpenCustomHashMap<>(ItemId.ITEM_META_NBT_STRATEGY);
 
-                Object2ObjectOpenCustomHashMap<ItemId, ItemStack> templates = new Object2ObjectOpenCustomHashMap<>(
+                Object2ObjectMap<ItemId, ItemStack> templates = new Object2ObjectOpenCustomHashMap<>(
                         ItemId.ITEM_META_NBT_STRATEGY);
 
                 for (int i = 0; i < count; i++) {
@@ -84,20 +86,20 @@ public class BlockInventoryMessage implements IMessage {
 
                     ItemId key = ItemId.createNoCopy(stack);
 
-                    mergedCounts.merge(key, (long) stack.stackSize, Long::sum);
+                    mergedCounts.merge(key, stack.stackSize, Long::sum);
 
                     templates.putIfAbsent(key, stack.copy());
                 }
 
                 List<ItemStack> finalList = new ArrayList<>();
 
-                for (Object2ObjectOpenCustomHashMap.Entry<ItemId, Long> entry : mergedCounts.object2ObjectEntrySet()) {
+                for (Object2LongMap.Entry<ItemId> entry : mergedCounts.object2LongEntrySet()) {
                     ItemId key = entry.getKey();
-                    long total = entry.getValue();
+                    long total = entry.getLongValue();
 
                     ItemStack template = templates.get(key);
                     if (template == null) continue;
-
+                    // >= 0 for compatibility with mods that use 0-count items as markers
                     while (total >= 0) {
                         int part = (int) Math.min(Integer.MAX_VALUE, total);
 
