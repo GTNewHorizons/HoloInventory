@@ -50,7 +50,7 @@ import cpw.mods.fml.relauncher.Side;
         version = HoloInventory.VERSION,
         acceptableRemoteVersions = "*",
         acceptedMinecraftVersions = "[1.7.10]",
-        dependencies = "after:Baubles;after:TConstruct;after:TwilightForest")
+        dependencies = "after:Baubles;after:TConstruct;after:TwilightForest;required-after:gtnhlib@[0.9.50,)")
 public class HoloInventory {
 
     public static final String MODID = "holoinventory";
