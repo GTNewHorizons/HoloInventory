@@ -31,6 +31,7 @@ import net.minecraft.item.Item;
 
 import org.apache.logging.log4j.Logger;
 
+import baubles.api.expanded.BaubleExpandedSlots;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.ModMetadata;
@@ -50,7 +51,7 @@ import cpw.mods.fml.relauncher.Side;
         version = HoloInventory.VERSION,
         acceptableRemoteVersions = "*",
         acceptedMinecraftVersions = "[1.7.10]",
-        dependencies = "after:Baubles;after:TConstruct;after:TwilightForest;required-after:gtnhlib@[0.9.50,)")
+        dependencies = "after:Baubles|Expanded;after:TConstruct;after:TwilightForest;required-after:gtnhlib@[0.9.50,)")
 public class HoloInventory {
 
     public static final String MODID = "holoinventory";
@@ -79,10 +80,14 @@ public class HoloInventory {
     @Mod.EventHandler()
     public void preInit(FMLPreInitializationEvent event) {
 
-        isBaublesLoaded = Loader.isModLoaded("Baubles");
+        isBaublesLoaded = Loader.isModLoaded("Baubles|Expanded");
         isTinkersLoaded = Loader.isModLoaded("TConstruct");
         isAE2Loaded = Loader.isModLoaded("appliedenergistics2");
         isTFLoaded = Loader.isModLoaded("TwilightForest");
+
+        if (isBaublesLoaded) {
+            BaubleExpandedSlots.tryAssignSlotsUpToMinimum(BaubleExpandedSlots.headType, 1);
+        }
 
         logger = event.getModLog();
         config = new Config(event.getSuggestedConfigurationFile());
