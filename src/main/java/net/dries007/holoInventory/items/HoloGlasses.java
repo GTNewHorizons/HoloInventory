@@ -21,6 +21,9 @@ import org.lwjgl.input.Keyboard;
 import baubles.api.BaubleType;
 import baubles.api.BaublesApi;
 import baubles.api.IBauble;
+import baubles.api.expanded.BaubleExpandedSlots;
+import baubles.api.expanded.BaubleItemHelper;
+import baubles.api.expanded.IBaubleExpanded;
 import cpw.mods.fml.common.Optional.Interface;
 import cpw.mods.fml.common.Optional.InterfaceList;
 import cpw.mods.fml.common.Optional.Method;
@@ -28,9 +31,10 @@ import tconstruct.armor.ArmorProxyClient;
 import tconstruct.armor.player.TPlayerStats;
 import tconstruct.library.accessory.IAccessory;
 
-@InterfaceList({ @Interface(iface = "baubles.api.IBauble", modid = "Baubles"),
+@InterfaceList({ @Interface(iface = "baubles.api.IBauble", modid = "Baubles|Expanded"),
+        @Interface(iface = "baubles.api.expanded.IBaubleExpanded", modid = "Baubles|Expanded"),
         @Interface(iface = "tconstruct.library.accessory.IAccessory", modid = "TConstruct") })
-public class HoloGlasses extends ItemArmor implements IHoloGlasses, IBauble, IAccessory {
+public class HoloGlasses extends ItemArmor implements IHoloGlasses, IBauble, IBaubleExpanded, IAccessory {
 
     public static final ArmorMaterial MATERIAL = EnumHelper
             .addArmorMaterial("holoGlasses", 0, new int[] { 0, 0, 0, 0 }, 0);
@@ -50,10 +54,17 @@ public class HoloGlasses extends ItemArmor implements IHoloGlasses, IBauble, IAc
 
     @Override
     public void addInformation(ItemStack stack, EntityPlayer player, List<String> list, boolean par4) {
-        list.add(StatCollector.translateToLocal("hologlasses.tooltip.put_in_tinkers_mask_slot"));
-        list.add(StatCollector.translateToLocal("hologlasses.tooltip.hold_shift"));
+        if (!HoloInventory.isBaublesLoaded) {
+            list.add(StatCollector.translateToLocal("hologlasses.tooltip.hold_shift"));
+        }
         if ((Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT))) {
             list.add(EnumChatFormatting.RED + StatCollector.translateToLocal("hologlasses.tooltip.adds_holographic"));
+        }
+        if (HoloInventory.isBaublesLoaded) {
+            // handles shift message
+            BaubleItemHelper.addSlotInformation(list, getBaubleTypes(stack));
+        } else {
+            list.add(StatCollector.translateToLocal("hologlasses.tooltip.put_in_tinkers_mask_slot"));
         }
     }
 
@@ -64,9 +75,12 @@ public class HoloGlasses extends ItemArmor implements IHoloGlasses, IBauble, IAc
 
         if (HoloInventory.isBaublesLoaded) {
             IInventory inventory = BaublesApi.getBaubles(player);
-            for (int i = 0; i != inventory.getSizeInventory(); i++) if (inventory.getStackInSlot(i) != null
-                    && inventory.getStackInSlot(i).getItem() instanceof IHoloGlasses)
-                return inventory.getStackInSlot(i);
+            for (int i = 0; i != inventory.getSizeInventory(); i++) {
+                if (inventory.getStackInSlot(i) != null
+                        && inventory.getStackInSlot(i).getItem() instanceof IHoloGlasses) {
+                    return inventory.getStackInSlot(i);
+                }
+            }
         }
 
         if (HoloInventory.isTinkersLoaded) {
@@ -100,32 +114,38 @@ public class HoloGlasses extends ItemArmor implements IHoloGlasses, IBauble, IAc
     // Baubles
 
     @Override
-    @Method(modid = "Baubles")
+    @Method(modid = "Baubles|Expanded")
     public boolean canEquip(ItemStack arg0, EntityLivingBase arg1) {
         return true;
     }
 
     @Override
-    @Method(modid = "Baubles")
+    @Method(modid = "Baubles|Expanded")
     public boolean canUnequip(ItemStack arg0, EntityLivingBase arg1) {
         return true;
     }
 
     @Override
-    @Method(modid = "Baubles")
+    @Method(modid = "Baubles|Expanded")
     public BaubleType getBaubleType(ItemStack arg0) {
         return BaubleType.RING;
     }
 
     @Override
-    @Method(modid = "Baubles")
+    @Method(modid = "Baubles|Expanded")
+    public String[] getBaubleTypes(ItemStack arg0) {
+        return new String[] { BaubleExpandedSlots.headType };
+    }
+
+    @Override
+    @Method(modid = "Baubles|Expanded")
     public void onEquipped(ItemStack arg0, EntityLivingBase arg1) {}
 
     @Override
-    @Method(modid = "Baubles")
+    @Method(modid = "Baubles|Expanded")
     public void onUnequipped(ItemStack arg0, EntityLivingBase arg1) {}
 
     @Override
-    @Method(modid = "Baubles")
+    @Method(modid = "Baubles|Expanded")
     public void onWornTick(ItemStack arg0, EntityLivingBase arg1) {}
 }

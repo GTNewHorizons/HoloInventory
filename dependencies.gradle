@@ -4,7 +4,7 @@ dependencies {
     implementation("com.github.GTNewHorizons:GTNHLib:0.9.50:dev")
     implementation("com.github.GTNewHorizons:NotEnoughItems:2.8.93-GTNH:dev")
     compileOnly('com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-911-GTNH:dev') { transitive = false }
-    compileOnly('com.github.GTNewHorizons:Baubles-Expanded:2.2.11-GTNH:dev') { transitive = false }
+    devOnlyNonPublishable('com.github.GTNewHorizons:Baubles-Expanded:2.2.11-GTNH:dev') { transitive = false }
     compileOnly("com.github.GTNewHorizons:TinkersConstruct:1.14.58-GTNH:dev") { transitive = false }
     compileOnly("com.github.GTNewHorizons:StorageDrawers:2.2.20-GTNH:dev")
     compileOnly("com.github.GTNewHorizons:Jabba:1.5.20:dev") { transitive = false }
