@@ -1,5 +1,7 @@
 package net.dries007.holoInventory.items;
 
+import static tconstruct.armor.ArmorProxyClient.armorExtended;
+
 import java.util.List;
 
 import net.dries007.holoInventory.HoloInventory;
@@ -26,8 +28,6 @@ import baubles.api.expanded.IBaubleExpanded;
 import cpw.mods.fml.common.Optional.Interface;
 import cpw.mods.fml.common.Optional.InterfaceList;
 import cpw.mods.fml.common.Optional.Method;
-import tconstruct.armor.ArmorProxyClient;
-import tconstruct.armor.player.TPlayerStats;
 import tconstruct.library.accessory.IAccessory;
 
 @InterfaceList({ @Interface(iface = "baubles.api.IBauble", modid = "Baubles|Expanded"),
@@ -86,9 +86,8 @@ public class HoloGlasses extends ItemArmor implements IHoloGlasses, IBauble, IBa
         }
 
         if (HoloInventory.isTinkersLoaded) {
-            IInventory inventory = TPlayerStats.get(player).armor;
-            for (int i = 0; i != inventory.getSizeInventory(); i++) {
-                ItemStack tinkersItem = ArmorProxyClient.armorExtended.getStackInSlot(i);
+            for (int i = 0; i != armorExtended.getSizeInventory(); i++) {
+                ItemStack tinkersItem = armorExtended.getStackInSlot(i);
                 if (tinkersItem != null && tinkersItem.getItem() instanceof IHoloGlasses glasses
                         && glasses.shouldRender(tinkersItem))
                     return true;
