@@ -1,5 +1,7 @@
 package net.dries007.holoInventory.items;
 
+import static tconstruct.armor.ArmorProxyClient.armorExtended;
+
 import java.util.List;
 
 import net.dries007.holoInventory.HoloInventory;
@@ -13,7 +15,6 @@ import net.minecraft.item.ItemArmor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
-import net.minecraft.world.World;
 import net.minecraftforge.common.util.EnumHelper;
 
 import org.lwjgl.input.Keyboard;
@@ -27,8 +28,6 @@ import baubles.api.expanded.IBaubleExpanded;
 import cpw.mods.fml.common.Optional.Interface;
 import cpw.mods.fml.common.Optional.InterfaceList;
 import cpw.mods.fml.common.Optional.Method;
-import tconstruct.armor.ArmorProxyClient;
-import tconstruct.armor.player.TPlayerStats;
 import tconstruct.library.accessory.IAccessory;
 
 @InterfaceList({ @Interface(iface = "baubles.api.IBauble", modid = "Baubles|Expanded"),
@@ -68,36 +67,33 @@ public class HoloGlasses extends ItemArmor implements IHoloGlasses, IBauble, IBa
         }
     }
 
-    public static ItemStack getHoloGlasses(World world, EntityPlayer player) {
+    public static boolean shouldRender(EntityPlayer player) {
         for (int i = 0; i < 4; i++) {
-            if (player.inventory.armorItemInSlot(i) != null
-                    && player.inventory.armorItemInSlot(i).getItem() instanceof IHoloGlasses)
-                return player.inventory.armorItemInSlot(i);
+            ItemStack armor = player.inventory.armorItemInSlot(i);
+            if (armor != null && armor.getItem() instanceof IHoloGlasses glasses && glasses.shouldRender(armor))
+                return true;
         }
 
         if (HoloInventory.isBaublesLoaded) {
             IInventory inventory = BaublesApi.getBaubles(player);
             for (int i = 0; i != inventory.getSizeInventory(); i++) {
-                if (inventory.getStackInSlot(i) != null
-                        && inventory.getStackInSlot(i).getItem() instanceof IHoloGlasses) {
-                    return inventory.getStackInSlot(i);
+                ItemStack bauble = inventory.getStackInSlot(i);
+                if (bauble != null && bauble.getItem() instanceof IHoloGlasses glasses
+                        && glasses.shouldRender(bauble)) {
+                    return true;
                 }
             }
         }
 
         if (HoloInventory.isTinkersLoaded) {
-            IInventory inventory = TPlayerStats.get(player).armor;
-
-            if (world.isRemote) for (int i = 0; i != inventory.getSizeInventory(); i++) {
-                if (ArmorProxyClient.armorExtended.getStackInSlot(i) != null
-                        && ArmorProxyClient.armorExtended.getStackInSlot(i).getItem() instanceof IHoloGlasses)
-                    return ArmorProxyClient.armorExtended.getStackInSlot(i);
+            for (int i = 0; i != armorExtended.getSizeInventory(); i++) {
+                ItemStack tinkersItem = armorExtended.getStackInSlot(i);
+                if (tinkersItem != null && tinkersItem.getItem() instanceof IHoloGlasses glasses
+                        && glasses.shouldRender(tinkersItem))
+                    return true;
             }
-            else for (int i = 0; i != inventory.getSizeInventory(); i++) if (inventory.getStackInSlot(i) != null
-                    && inventory.getStackInSlot(i).getItem() instanceof IHoloGlasses)
-                return inventory.getStackInSlot(i);
         }
-        return null;
+        return false;
     }
 
     @Override

@@ -26,7 +26,6 @@ import javax.annotation.Nullable;
 
 import net.dries007.holoInventory.Config;
 import net.dries007.holoInventory.HoloInventory;
-import net.dries007.holoInventory.api.IHoloGlasses;
 import net.dries007.holoInventory.items.HoloGlasses;
 import net.dries007.holoInventory.network.EntityRequestMessage;
 import net.dries007.holoInventory.util.Coord;
@@ -43,7 +42,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.village.MerchantRecipe;
 import net.minecraft.village.MerchantRecipeList;
-import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
@@ -97,10 +95,8 @@ public class Renderer {
             return;
         }
         final EntityPlayer player = Minecraft.getMinecraft().thePlayer;
-        final World world = Minecraft.getMinecraft().theWorld;
-        final ItemStack glasses = HoloGlasses.getHoloGlasses(world, player);
         try {
-            if (!Config.requireGlasses || glasses != null && ((IHoloGlasses) glasses.getItem()).shouldRender(glasses)) {
+            if (!Config.requireGlasses || HoloGlasses.shouldRender(player)) {
                 doEvent(event.partialTicks);
             }
         } catch (Exception e) {
