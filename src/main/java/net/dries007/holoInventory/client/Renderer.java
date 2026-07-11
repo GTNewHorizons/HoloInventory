@@ -283,13 +283,7 @@ public class Renderer {
 
         List<ItemStack> list = filterByNEI(namedData);
 
-        int wantedSize;
-
-        if (Config.mode == 2) {
-            wantedSize = Config.maxRenderedItems;
-        } else {
-            wantedSize = list.size();
-        }
+        int wantedSize = Config.mode == 2 ? Config.maxRenderedItems : list.size();
 
         if (Config.mode != 0) {
             list.sort(Comparator.<ItemStack>comparingInt(s -> s.stackSize).reversed());
