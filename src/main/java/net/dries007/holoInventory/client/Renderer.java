@@ -283,29 +283,12 @@ public class Renderer {
 
         List<ItemStack> list = filterByNEI(namedData);
 
-        int wantedSize = list.size();
+        int wantedSize;
 
-        switch (Config.mode) {
-            // Most abundant, 1 item
-            case 2:
-                wantedSize = 1;
-                break;
-            // Most abundant, 3 items
-            case 3:
-                wantedSize = 3;
-                break;
-            // Most abundant, 5 items
-            case 4:
-                wantedSize = 5;
-                break;
-            // Most abundant, 7 items
-            case 5:
-                wantedSize = 7;
-                break;
-            // Most abundant, 9 items
-            case 6:
-                wantedSize = 9;
-                break;
+        if (Config.mode == 2) {
+            wantedSize = Config.maxRenderedItems;
+        } else {
+            wantedSize = list.size();
         }
 
         if (Config.mode != 0) {

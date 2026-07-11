@@ -43,6 +43,7 @@ public class Config {
     public static boolean renderName = true;
     public static boolean hideItemsNotSelected = true;
     public static int mode = 0;
+    public static int maxRenderedItems = 0;
     public static int cycle = 0;
     public static int keyMode = 1;
     public static boolean enableEntities = true;
@@ -178,11 +179,14 @@ public class Config {
                 mode,
                 "Valid modes:\n" + "0: Default mode (Display all items).\n"
                         + "1: Sorting mode, biggest stack size first.\n"
-                        + "2: Most abundant mode (Only display the item the most abundant in the chest.\n"
-                        + "3: Same as 1, but with 3 items.\n"
-                        + "4: Same as 1, but with 5 items.\n"
-                        + "5: Same as 1, but with 7 items.\n"
-                        + "6: Same as 1, but with 9 items.")
+                        + "2: Most abundant mode (Only display the most abundant items in the chest).\nThe exact amount is configured in the \"maxRenderedItems\" config.")
+                .getInt();
+
+        maxRenderedItems = configuration.get(
+                HoloInventory.MODID,
+                "maxRenderedItems",
+                maxRenderedItems,
+                "The maximum amount of items to render, assuming that mode 2 (in the \"mode\" config) is used.\nThe most abundant items will be chosen for rendering.\nIf mode 2 is not used, this configuration is useless.")
                 .getInt();
 
         cycle = configuration.get(
