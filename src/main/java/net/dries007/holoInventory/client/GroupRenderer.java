@@ -10,6 +10,7 @@ import net.dries007.holoInventory.HoloInventory;
 import net.dries007.holoInventory.util.Helper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderItem;
@@ -74,7 +75,7 @@ public class GroupRenderer {
 
     private float scale, width, height, spacing, offset;
     private int columns, rows;
-    private boolean renderText;
+    private boolean renderText, fullBright;
 
     public GroupRenderer() {
         fakeEntityItem.setEntityItemStack(new ItemStack(HoloInventory.fluidRenderFakeItem));
@@ -123,6 +124,10 @@ public class GroupRenderer {
         this.renderText = renderText;
     }
 
+    public void setFullBright(boolean fullBright) {
+        this.fullBright = fullBright;
+    }
+
     public void reset() {
         scale = 0;
         width = 0;
@@ -132,6 +137,7 @@ public class GroupRenderer {
         columns = 0;
         rows = 0;
         renderText = false;
+        fullBright = false;
     }
 
     private float getActualSpacing() {
@@ -215,38 +221,64 @@ public class GroupRenderer {
     }
 
     private void doRenderEntityItem(int column, int row, String stackSizeText) {
-        RenderHelper.enableStandardItemLighting();
+        float previousBrightnessX = OpenGlHelper.lastBrightnessX;
+        float previousBrightnessY = OpenGlHelper.lastBrightnessY;
+        if (fullBright) {
+            // max lightmap brightness
+            OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240f, 240f);
+            RenderHelper.disableStandardItemLighting();
+            GL11.glColor4f(1f, 1f, 1f, 1f);
+        } else {
+            RenderHelper.enableStandardItemLighting();
+        }
+        boolean fancyGraphicsChanged = false;
+        boolean oldFancyGraphics = false;
         GL11.glPushMatrix();
-        GL11.glTranslatef(width - ((column + 0.2f) * scale * spacing), height - ((row + 0.05f) * scale * spacing), 0f);
-        GL11.glTranslatef(0, offset, 0);
-        GL11.glScalef(scale, scale, scale);
-        RenderItem.renderInFrame = true;
-        GL11.glRotatef(Config.rotateItems ? time : 180f, 0.0F, 1.0F, 0.0F);
-        final boolean oldFancyGraphics;
-        if (angelicaFancyItemsSetter != null) {
+        try {
+            GL11.glTranslatef(
+                    width - ((column + 0.2f) * scale * spacing),
+                    height - ((row + 0.05f) * scale * spacing),
+                    0f);
+            GL11.glTranslatef(0, offset, 0);
+            GL11.glScalef(scale, scale, scale);
+            RenderItem.renderInFrame = true;
+            GL11.glRotatef(Config.rotateItems ? time : 180f, 0.0F, 1.0F, 0.0F);
+            if (angelicaFancyItemsSetter != null) {
+                try {
+                    oldFancyGraphics = (boolean) angelicaFancyItemsGetter.invokeExact();
+                    angelicaFancyItemsSetter.invokeExact(true);
+                    fancyGraphicsChanged = true;
+                } catch (Throwable t) {
+                    throw Throwables.propagate(t);
+                }
+            } else {
+                oldFancyGraphics = Minecraft.getMinecraft().gameSettings.fancyGraphics;
+                Minecraft.getMinecraft().gameSettings.fancyGraphics = true;
+                fancyGraphicsChanged = true;
+            }
+            ClientHandler.RENDER_ITEM.doRender(fakeEntityItem, 0, 0, 0, 0, 0);
+        } finally {
             try {
-                oldFancyGraphics = (boolean) angelicaFancyItemsGetter.invokeExact();
-                angelicaFancyItemsSetter.invokeExact(true);
+                if (fancyGraphicsChanged && angelicaFancyItemsSetter != null) {
+                    angelicaFancyItemsSetter.invokeExact(oldFancyGraphics);
+                } else if (fancyGraphicsChanged) {
+                    Minecraft.getMinecraft().gameSettings.fancyGraphics = oldFancyGraphics;
+                }
             } catch (Throwable t) {
                 throw Throwables.propagate(t);
+            } finally {
+                RenderItem.renderInFrame = false;
+                GL11.glMatrixMode(GL11.GL_MODELVIEW);
+                GL11.glPopMatrix();
+                RenderHelper.disableStandardItemLighting();
+                if (fullBright) {
+                    OpenGlHelper.setLightmapTextureCoords(
+                            OpenGlHelper.lightmapTexUnit,
+                            previousBrightnessX,
+                            previousBrightnessY);
+                }
             }
-        } else {
-            oldFancyGraphics = Minecraft.getMinecraft().gameSettings.fancyGraphics;
-            Minecraft.getMinecraft().gameSettings.fancyGraphics = true;
         }
-        ClientHandler.RENDER_ITEM.doRender(fakeEntityItem, 0, 0, 0, 0, 0);
-        if (angelicaFancyItemsSetter != null) {
-            try {
-                angelicaFancyItemsSetter.invokeExact((boolean) oldFancyGraphics);
-            } catch (Throwable t) {
-                throw Throwables.propagate(t);
-            }
-        } else {
-            Minecraft.getMinecraft().gameSettings.fancyGraphics = oldFancyGraphics;
-        }
-        RenderItem.renderInFrame = false;
-        GL11.glPopMatrix();
-        RenderHelper.disableStandardItemLighting();
         if (renderText && stackSizeText != null) {
             GL11.glPushMatrix();
             GL11.glDisable(GL11.GL_DEPTH_TEST);
