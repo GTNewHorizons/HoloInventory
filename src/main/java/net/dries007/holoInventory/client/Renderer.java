@@ -59,6 +59,8 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 public class Renderer {
 
+    private static final double MIN_SCALE_DISTANCE = 1.5;
+
     public static final HashMap<Integer, NamedData<ItemStack[]>> tileInventoryMap = new HashMap<>();
     public static final HashMap<Integer, List<FluidTankInfo>> tileFluidHandlerMap = new HashMap<>();
     public static final HashMap<Integer, NamedData<ItemStack[]>> entityMap = new HashMap<>();
@@ -279,7 +281,6 @@ public class Renderer {
     private void renderHologram(@Nullable NamedData<ItemStack[]> namedData,
             @Nullable List<FluidTankInfo> fluidTankInfos) {
         final double distance = distance();
-        if (distance < 1.5) return;
 
         List<ItemStack> list = filterByNEI(namedData);
 
@@ -335,64 +336,68 @@ public class Renderer {
             @Nonnull List<FluidTankInfo> fluidTankInfos, double distance) {
         if (itemStacks.isEmpty() && fluidTankInfos.isEmpty()) return;
 
-        // not sure why blending is happening, but there it is.
-        GL11.glDisable(GL11.GL_BLEND);
-
+        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);
         GL11.glPushMatrix();
         GL11.glMatrixMode(GL11.GL_PROJECTION);
         GL11.glPushMatrix();
+        try {
+            // not sure why blending is happening, but there it is.
+            GL11.glDisable(GL11.GL_BLEND);
+            GL11.glEnable(GL11.GL_DEPTH_TEST);
+            GL11.glDepthFunc(GL11.GL_LEQUAL);
+            GL11.glDepthMask(true);
+            // draw in front of world geometry so contents show through the container
+            GL11.glDepthRange(0.0, 0.01);
 
-        GL11.glMatrixMode(GL11.GL_PROJECTION);
-        GL11.glLoadMatrix(ActiveRenderInfo.projection);
-        GL11.glMatrixMode(GL11.GL_MODELVIEW);
-        GL11.glLoadMatrix(ActiveRenderInfo.modelview);
+            GL11.glLoadMatrix(ActiveRenderInfo.projection);
+            GL11.glMatrixMode(GL11.GL_MODELVIEW);
+            GL11.glLoadMatrix(ActiveRenderInfo.modelview);
 
-        // Move to right position and rotate to face the player
-        moveAndRotate(-1);
+            // Move to right position and rotate to face the player
+            moveAndRotate(0);
 
-        double uiScaleFactor = Config.renderScaling;
-        if (uiScaleFactor < 0.1) uiScaleFactor = 0.1;
-        GL11.glScaled(uiScaleFactor, uiScaleFactor, uiScaleFactor);
+            double uiScaleFactor = Math.max(Config.renderScaling, 0.1) * closeRangeScale(distance);
+            GL11.glScaled(uiScaleFactor, uiScaleFactor, uiScaleFactor);
 
-        preRenderHologramItems(itemStacks, distance);
-        preRenderHologramFluids(fluidTankInfos, distance);
+            preRenderHologramItems(itemStacks, distance);
+            preRenderHologramFluids(fluidTankInfos, distance);
 
-        itemGroupRenderer.setOffset(fluidGroupRenderer.calculateOffset());
+            itemGroupRenderer.setOffset(fluidGroupRenderer.calculateOffset());
 
-        // Render the BG
-        if (Config.colorEnable) {
-            List<GroupRenderer> list = new ArrayList<>();
-            if (!itemStacks.isEmpty()) {
-                list.add(itemGroupRenderer);
+            // Render the BG
+            if (Config.colorEnable) {
+                List<GroupRenderer> list = new ArrayList<>();
+                if (!itemStacks.isEmpty()) {
+                    list.add(itemGroupRenderer);
+                }
+                if (!fluidTankInfos.isEmpty()) {
+                    list.add(fluidGroupRenderer);
+                }
+                GroupRenderer.renderBG(list.toArray(new GroupRenderer[0]));
             }
-            if (!fluidTankInfos.isEmpty()) {
-                list.add(fluidGroupRenderer);
+
+            // Render the inv name
+            if (Config.renderName && name != null) {
+                GroupRenderer.renderName(name, itemGroupRenderer, fluidGroupRenderer);
             }
-            GroupRenderer.renderBG(list.toArray(new GroupRenderer[0]));
+
+            renderHologramItems(itemStacks);
+            renderHologramFluids(fluidTankInfos);
+        } finally {
+            GL11.glMatrixMode(GL11.GL_PROJECTION);
+            GL11.glPopMatrix();
+            GL11.glMatrixMode(GL11.GL_MODELVIEW);
+            GL11.glPopMatrix();
+            GL11.glPopAttrib();
         }
-
-        // Render the inv name
-        if (Config.renderName && name != null) {
-            GroupRenderer.renderName(name, itemGroupRenderer, fluidGroupRenderer);
-        }
-
-        renderHologramItems(itemStacks);
-        renderHologramFluids(fluidTankInfos);
-
-        // Undo our changes to the matrices, though the warped UI was hilarious.
-        GL11.glMatrixMode(GL11.GL_PROJECTION);
-        GL11.glPopMatrix();
-        GL11.glMatrixMode(GL11.GL_MODELVIEW);
-        GL11.glPopMatrix();
-
-        GL11.glEnable(GL11.GL_BLEND);
     }
 
     private void preRenderHologramItems(List<ItemStack> itemStacks, double distance) {
         if (itemStacks.isEmpty()) return;
 
         // See if we need to increase spacing
-        float stackSpacing = 0.6f;
+        float stackSpacing = 0.65f;
         if (Config.renderText) {
             for (ItemStack stack : itemStacks) {
                 if (stack.stackSize >= 1000 || GroupRenderer.stackSizeDebugOverride >= 1000) {
@@ -404,9 +409,10 @@ public class Renderer {
 
         itemGroupRenderer.calculateColumns(itemStacks.size());
         itemGroupRenderer.calculateRows(itemStacks.size());
-        itemGroupRenderer.setScale((float) (0.05f * distance));
+        itemGroupRenderer.setScale((float) (0.065 * scaleDistance(distance)));
         itemGroupRenderer.setSpacing(stackSpacing);
         itemGroupRenderer.setRenderText(Config.renderText);
+        itemGroupRenderer.setFullBright(true);
     }
 
     private void renderHologramItems(List<ItemStack> itemStacks) {
@@ -418,7 +424,7 @@ public class Renderer {
         if (fluidTankInfos.isEmpty()) return;
 
         // See if we need to increase spacing
-        float spacing = 0.6f;
+        float spacing = 0.65f;
         if (Config.renderText) {
             for (FluidTankInfo fluidTankInfo : fluidTankInfos) {
                 if (fluidTankInfo.fluid.amount >= 1000) {
@@ -430,14 +436,25 @@ public class Renderer {
 
         fluidGroupRenderer.calculateColumns(fluidTankInfos.size());
         fluidGroupRenderer.calculateRows(fluidTankInfos.size());
-        fluidGroupRenderer.setScale((float) (0.05f * distance));
+        fluidGroupRenderer.setScale((float) (0.065 * scaleDistance(distance)));
         fluidGroupRenderer.setSpacing(spacing);
         fluidGroupRenderer.setRenderText(Config.renderText);
+        fluidGroupRenderer.setFullBright(true);
     }
 
     private void renderHologramFluids(List<FluidTankInfo> fluidTankInfos) {
         if (fluidTankInfos.isEmpty()) return;
         fluidGroupRenderer.renderFluids(fluidTankInfos);
+    }
+
+    // sublinear for item scale
+    private static double scaleDistance(double distance) {
+        return Math.pow(Math.max(MIN_SCALE_DISTANCE, distance), 0.75);
+    }
+
+    // shrink when close, floors at 0.35
+    private static double closeRangeScale(double distance) {
+        return Math.min(1.0, Math.max(0.35, distance / MIN_SCALE_DISTANCE));
     }
 
     /**
