@@ -15,7 +15,6 @@ package net.dries007.holoInventory.server;
 
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_TYPE;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,6 +40,7 @@ import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.InventoryLargeChest;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityChest;
 import net.minecraft.tileentity.TileEntityEnderChest;
@@ -84,24 +84,18 @@ public class ServerEventHandler {
     }
 
     @Desugar
-    private record CachedPatternInventory(WeakReference<IInventory> inventory, int hash) {
+    private record CachedPatternInventory(IInventory inventory, NBTTagList patterns) {
 
-        public static int computeHash(IInventory key) {
-            int h = 0;
-            for (int i = 0; i < key.getSizeInventory(); ++i) {
-                ItemStack s = key.getStackInSlot(i);
-                // we only care about NBT because patterns are all the same otherwise
-                if (s != null && s.getTagCompound() != null) {
-                    h ^= s.getTagCompound().hashCode();
-                }
+        private static NBTTagList snapshot(IInventory inventory) {
+            final NBTTagList patterns = new NBTTagList();
+            for (int i = 0; i < inventory.getSizeInventory(); i++) {
+                final ItemStack stack = inventory.getStackInSlot(i);
+                patterns.appendTag(
+                        stack == null || stack.getTagCompound() == null ? new NBTTagCompound()
+                                : stack.getTagCompound().copy());
             }
-            return h;
+            return patterns;
         }
-
-        private CachedPatternInventory(IInventory inventory, IInventory hash) {
-            this(new WeakReference<>(inventory), computeHash(hash));
-        }
-
     }
 
     final Map<IInventory, CachedPatternInventory> wrappedInventoryCache = new WeakHashMap<>();
@@ -286,13 +280,12 @@ public class ServerEventHandler {
 
     private IInventory getCachedPatternsWrapper(WorldServer world, String name, IInventory patterns) {
         CachedPatternInventory cache = wrappedInventoryCache.get(patterns);
-        IInventory ret;
-        if (cache == null || (ret = cache.inventory.get()) == null
-                || cache.hash != CachedPatternInventory.computeHash(patterns)) {
-            cache = new CachedPatternInventory(ret = convertToOutputItems(name, patterns, world), patterns);
+        final NBTTagList snapshot = CachedPatternInventory.snapshot(patterns);
+        if (cache == null || !cache.patterns.equals(snapshot)) {
+            cache = new CachedPatternInventory(convertToOutputItems(name, patterns, world), snapshot);
             wrappedInventoryCache.put(patterns, cache);
         }
-        return ret;
+        return cache.inventory;
     }
 
     private void checkForChangedType(Coord coord, String type, EntityPlayerMP player) {
