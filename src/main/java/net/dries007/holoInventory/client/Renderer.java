@@ -16,10 +16,7 @@ package net.dries007.holoInventory.client;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -56,30 +53,46 @@ import codechicken.nei.api.ItemFilter;
 import cpw.mods.fml.client.FMLClientHandler;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import it.unimi.dsi.fastutil.ints.Int2LongLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2LongMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
 public class Renderer {
 
-    /**
-     * These only ever grew: every inventory looked at during a session kept its contents alive until the world was
-     * left. Insertion ordered on purpose, access ordering would turn a read into a write and these are read from the
-     * render thread while the network thread fills them. Evicting the oldest is safe, the server resends the data for
-     * whatever is being looked at.
-     */
-    private static <V> HashMap<Integer, V> boundedCache() {
-        return new LinkedHashMap<Integer, V>() {
+    private static final int MAX_CACHED = 1024;
 
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<Integer, V> eldest) {
-                return size() > 1024;
-            }
-        };
+    /**
+     * Insertion ordered, so evicting the oldest is safe, the server resends the data for whatever is being looked at.
+     * Nothing here may use fastutil's getAndMoveTo* methods: a read must not reorder the map, these are read from the
+     * render thread while the network thread fills them.
+     */
+    private static class BoundedCache<V> extends Int2ObjectLinkedOpenHashMap<V> {
+
+        @Override
+        public V put(int key, V value) {
+            final V old = super.put(key, value);
+            if (size() > MAX_CACHED) removeFirst();
+            return old;
+        }
     }
 
-    public static final HashMap<Integer, NamedData<ItemStack[]>> tileInventoryMap = boundedCache();
-    public static final HashMap<Integer, List<FluidTankInfo>> tileFluidHandlerMap = boundedCache();
-    public static final HashMap<Integer, NamedData<ItemStack[]>> entityMap = boundedCache();
-    public static final HashMap<Integer, NamedData<MerchantRecipeList>> merchantMap = boundedCache();
-    public static final HashMap<Integer, Long> requestMap = boundedCache();
+    /** @see BoundedCache */
+    private static class BoundedLongCache extends Int2LongLinkedOpenHashMap {
+
+        @Override
+        public long put(int key, long value) {
+            final long old = super.put(key, value);
+            if (size() > MAX_CACHED) removeFirstLong();
+            return old;
+        }
+    }
+
+    public static final Int2ObjectMap<NamedData<ItemStack[]>> tileInventoryMap = new BoundedCache<>();
+    public static final Int2ObjectMap<List<FluidTankInfo>> tileFluidHandlerMap = new BoundedCache<>();
+    public static final Int2ObjectMap<NamedData<ItemStack[]>> entityMap = new BoundedCache<>();
+    public static final Int2ObjectMap<NamedData<MerchantRecipeList>> merchantMap = new BoundedCache<>();
+    public static final Int2LongMap requestMap = new BoundedLongCache();
 
     private Coord coord;
     public boolean enabled = true;

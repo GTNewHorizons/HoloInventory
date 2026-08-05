@@ -62,13 +62,15 @@ import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.relauncher.Side;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 public class ServerEventHandler {
 
     public final List<String> banUsers = new ArrayList<>();
     public final HashMap<String, String> overrideUsers = new HashMap<>();
-    public final HashMap<Integer, InventoryData> mapBlockToInv = new HashMap<>();
-    public final HashMap<Integer, FluidHandlerData> mapBlockToFluidHandler = new HashMap<>();
+    public final Int2ObjectMap<InventoryData> mapBlockToInv = new Int2ObjectOpenHashMap<>();
+    public final Int2ObjectMap<FluidHandlerData> mapBlockToFluidHandler = new Int2ObjectOpenHashMap<>();
 
     private static class CachedPatternInventory {
 
