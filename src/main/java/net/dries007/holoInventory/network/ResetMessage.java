@@ -28,6 +28,7 @@ public class ResetMessage implements IMessage {
                     Renderer.entityMap.clear();
                     Renderer.requestMap.clear();
                     Renderer.tileInventoryMap.clear();
+                    Renderer.tileFluidHandlerMap.clear();
                     Renderer.merchantMap.clear();
                 });
             }

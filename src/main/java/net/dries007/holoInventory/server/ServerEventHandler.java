@@ -35,6 +35,7 @@ import net.dries007.holoInventory.util.Helper;
 import net.dries007.holoInventory.util.InventoryData;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockJukebox;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.InventoryLargeChest;
@@ -351,6 +352,11 @@ public class ServerEventHandler {
     public void clearInventoryData() {
         mapBlockToInv.clear();
         mapBlockToFluidHandler.clear();
+    }
+
+    public void resetPlayer(EntityPlayer player) {
+        for (InventoryData data : mapBlockToInv.values()) data.playerSet.remove(player);
+        for (FluidHandlerData data : mapBlockToFluidHandler.values()) data.playerSet.remove(player);
     }
 
     private void processFluidHandlerData(Coord coord, EntityPlayerMP player, IFluidHandler fluidHandler) {

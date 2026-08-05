@@ -19,7 +19,6 @@ import java.util.List;
 import net.dries007.holoInventory.Config;
 import net.dries007.holoInventory.HoloInventory;
 import net.dries007.holoInventory.network.ResetMessage;
-import net.dries007.holoInventory.util.InventoryData;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
@@ -145,16 +144,17 @@ public class CommandHoloInventory extends CommandBase {
             if (!(sender instanceof EntityPlayer)) {
                 throw new WrongUsageException("You can't use this as the server...");
             }
-            HoloInventory.getSnw().sendTo(new ResetMessage(), (EntityPlayerMP) sender);
-            for (InventoryData data : ServerHandler.serverEventHandler.mapBlockToInv.values()) {
-                data.playerSet.remove(sender);
-            }
+            final EntityPlayerMP player = (EntityPlayerMP) sender;
+            HoloInventory.getSnw().sendTo(new ResetMessage(), player);
+            ServerHandler.serverEventHandler.resetPlayer(player);
             sender.addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN + "Cleared client cache"));
 
         } else if (args[0].equalsIgnoreCase("reload")) {
 
             if (sender instanceof EntityPlayer) {
-                HoloInventory.getSnw().sendTo(new ResetMessage(), (EntityPlayerMP) sender);
+                final EntityPlayerMP player = (EntityPlayerMP) sender;
+                HoloInventory.getSnw().sendTo(new ResetMessage(), player);
+                ServerHandler.serverEventHandler.resetPlayer(player);
             }
             if (isOp(sender)) {
                 HoloInventory.getConfig().reload();

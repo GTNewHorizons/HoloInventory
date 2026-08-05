@@ -45,12 +45,9 @@ public class RemoveInventoryMessage implements IMessage {
             if (ctx.side.isClient()) {
                 Minecraft.getMinecraft().func_152344_a(() -> {
                     switch (message.data.getByte(NBT_KEY_TYPE)) {
-                        case 0:
-                            Renderer.tileInventoryMap.remove(new Coord(message.data));
-                        case 1:
-                            Renderer.entityMap.remove(message.data.getInteger(NBT_KEY_ID));
-                        case 2:
-                            Renderer.merchantMap.remove(message.data.getInteger(NBT_KEY_ID));
+                        case 0 -> Renderer.tileInventoryMap.remove(new Coord(message.data));
+                        case 1 -> Renderer.entityMap.remove(message.data.getInteger(NBT_KEY_ID));
+                        case 2 -> Renderer.merchantMap.remove(message.data.getInteger(NBT_KEY_ID));
                     }
                 });
             }
