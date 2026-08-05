@@ -14,12 +14,10 @@
 package net.dries007.holoInventory.client;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -82,6 +80,7 @@ public class Renderer {
     ItemFilter cachedFilter = null;
     String cachedSearch = "";
     private boolean fancyGraphics;
+    private final ArrayList<ItemStack> filteredItems = new ArrayList<>();
 
     @SubscribeEvent
     public void optifineIsAnnoying(RenderWorldLastEvent event) {
@@ -249,21 +248,27 @@ public class Renderer {
      */
     private List<ItemStack> filterByNEI(NamedData<ItemStack[]> namedData) {
         if (namedData == null || namedData.isInvalid()) return Collections.emptyList();
-        ItemStack[] items = namedData.data;
+        final ItemStack[] items = namedData.data;
+        filteredItems.clear();
         try {
             if (Config.hideItemsNotSelected && Loader.isModLoaded("NotEnoughItems")
                     && SearchField.searchInventories()) {
-                final String searchString = NEIClientConfig.getSearchExpression().toLowerCase();
+                final String searchString = NEIClientConfig.getSearchExpression();
                 if (!cachedSearch.equals(searchString) || cachedFilter == null) {
-                    cachedFilter = SearchField.getFilter(searchString);
+                    cachedFilter = SearchField.getFilter(searchString.toLowerCase());
                     cachedSearch = searchString;
                 }
-                return Arrays.stream(items).filter(s -> cachedFilter.matches(s)).collect(Collectors.toList());
+                for (ItemStack item : items) {
+                    if (cachedFilter.matches(item)) filteredItems.add(item);
+                }
+                return filteredItems;
             }
         } catch (Exception ex) {
             ex.printStackTrace();
+            filteredItems.clear();
         }
-        return Arrays.asList(items);
+        Collections.addAll(filteredItems, items);
+        return filteredItems;
     }
 
     private void renderHologram(NamedData<ItemStack[]> namedData) {
