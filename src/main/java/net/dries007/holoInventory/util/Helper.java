@@ -13,7 +13,7 @@
 
 package net.dries007.holoInventory.util;
 
-import java.util.function.Function;
+import java.util.function.ToDoubleFunction;
 
 import net.dries007.holoInventory.HoloInventory;
 import net.minecraft.block.BlockJukebox;
@@ -67,11 +67,11 @@ public class Helper {
         return par2EntityPlayer.worldObj.rayTraceBlocks(vec3, vec31);
     }
 
-    public static <T> float min(Function<T, Float> function, T[] array) {
+    public static <T> float min(ToDoubleFunction<T> function, T[] array) {
         if (array.length == 0) throw new IllegalArgumentException();
         float ret = Float.MAX_VALUE;
         for (T value : array) {
-            float test = function.apply(value);
+            float test = (float) function.applyAsDouble(value);
             if (test < ret) {
                 ret = test;
             }
@@ -79,11 +79,11 @@ public class Helper {
         return ret;
     }
 
-    public static <T> float max(Function<T, Float> function, T[] array) {
+    public static <T> float max(ToDoubleFunction<T> function, T[] array) {
         if (array.length == 0) throw new IllegalArgumentException();
         float ret = -Float.MAX_VALUE;
         for (T value : array) {
-            float test = function.apply(value);
+            float test = (float) function.applyAsDouble(value);
             if (test > ret) {
                 ret = test;
             }
@@ -91,10 +91,10 @@ public class Helper {
         return ret;
     }
 
-    public static <T> float sum(Function<T, Float> function, T[] array) {
+    public static <T> float sum(ToDoubleFunction<T> function, T[] array) {
         float ret = 0;
         for (T value : array) {
-            ret += function.apply(value);
+            ret += (float) function.applyAsDouble(value);
         }
         return ret;
     }
