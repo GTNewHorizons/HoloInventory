@@ -1,6 +1,7 @@
 package net.dries007.holoInventory.network;
 
 import net.dries007.holoInventory.client.Renderer;
+import net.minecraft.client.Minecraft;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -23,10 +24,12 @@ public class ResetMessage implements IMessage {
         @Override
         public IMessage onMessage(ResetMessage message, MessageContext ctx) {
             if (ctx.side.isClient()) {
-                Renderer.entityMap.clear();
-                Renderer.requestMap.clear();
-                Renderer.tileInventoryMap.clear();
-                Renderer.merchantMap.clear();
+                Minecraft.getMinecraft().func_152344_a(() -> {
+                    Renderer.entityMap.clear();
+                    Renderer.requestMap.clear();
+                    Renderer.tileInventoryMap.clear();
+                    Renderer.merchantMap.clear();
+                });
             }
             return null;
         }

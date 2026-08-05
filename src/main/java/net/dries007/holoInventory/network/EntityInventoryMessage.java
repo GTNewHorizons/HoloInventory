@@ -8,6 +8,7 @@ import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_NAME;
 
 import net.dries007.holoInventory.client.Renderer;
 import net.dries007.holoInventory.util.NamedData;
+import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -55,18 +56,12 @@ public class EntityInventoryMessage implements IMessage {
                     itemStacks[i] = ItemStack.loadItemStackFromNBT(tag);
                     if (itemStacks[i] != null) itemStacks[i].stackSize = tag.getInteger(NBT_KEY_COUNT);
                 }
-                if (message.data.hasKey(NBT_KEY_CLASS)) {
-                    Renderer.entityMap.put(
-                            message.data.getInteger(NBT_KEY_ID),
-                            new NamedData<>(
-                                    message.data.getString(NBT_KEY_NAME),
-                                    message.data.getString(NBT_KEY_CLASS),
-                                    itemStacks));
-                } else {
-                    Renderer.entityMap.put(
-                            message.data.getInteger(NBT_KEY_ID),
-                            new NamedData<>(message.data.getString(NBT_KEY_NAME), itemStacks));
-                }
+                final int id = message.data.getInteger(NBT_KEY_ID);
+                final String name = message.data.getString(NBT_KEY_NAME);
+                final NamedData<ItemStack[]> data = message.data.hasKey(NBT_KEY_CLASS)
+                        ? new NamedData<>(name, message.data.getString(NBT_KEY_CLASS), itemStacks)
+                        : new NamedData<>(name, itemStacks);
+                Minecraft.getMinecraft().func_152344_a(() -> Renderer.entityMap.put(id, data));
             }
 
             return null;

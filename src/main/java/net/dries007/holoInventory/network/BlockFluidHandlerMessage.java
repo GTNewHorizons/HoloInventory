@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.dries007.holoInventory.client.Renderer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.common.util.Constants;
@@ -58,7 +59,8 @@ public class BlockFluidHandlerMessage implements IMessage {
                     tankInfos.add(new FluidTankInfo(stack, tag.getInteger(NBT_KEY_CAPACITY)));
                 }
             }
-            Renderer.tileFluidHandlerMap.put(message.data.getInteger(NBT_KEY_ID), tankInfos);
+            final int id = message.data.getInteger(NBT_KEY_ID);
+            Minecraft.getMinecraft().func_152344_a(() -> Renderer.tileFluidHandlerMap.put(id, tankInfos));
 
             return null;
         }

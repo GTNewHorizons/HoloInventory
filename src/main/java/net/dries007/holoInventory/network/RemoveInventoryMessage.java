@@ -4,6 +4,7 @@ import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_ID;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_TYPE;
 
 import net.dries007.holoInventory.client.Renderer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.NBTTagCompound;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
@@ -41,14 +42,16 @@ public class RemoveInventoryMessage implements IMessage {
         @Override
         public IMessage onMessage(RemoveInventoryMessage message, MessageContext ctx) {
             if (ctx.side.isClient()) {
-                switch (message.data.getByte(NBT_KEY_TYPE)) {
-                    case 0:
-                        Renderer.tileInventoryMap.remove(message.data.getInteger(NBT_KEY_ID));
-                    case 1:
-                        Renderer.entityMap.remove(message.data.getInteger(NBT_KEY_ID));
-                    case 2:
-                        Renderer.merchantMap.remove(message.data.getInteger(NBT_KEY_ID));
-                }
+                Minecraft.getMinecraft().func_152344_a(() -> {
+                    switch (message.data.getByte(NBT_KEY_TYPE)) {
+                        case 0:
+                            Renderer.tileInventoryMap.remove(message.data.getInteger(NBT_KEY_ID));
+                        case 1:
+                            Renderer.entityMap.remove(message.data.getInteger(NBT_KEY_ID));
+                        case 2:
+                            Renderer.merchantMap.remove(message.data.getInteger(NBT_KEY_ID));
+                    }
+                });
             }
 
             return null;
