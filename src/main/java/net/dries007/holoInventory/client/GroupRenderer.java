@@ -28,6 +28,8 @@ import org.lwjgl.opengl.GL12;
 
 import com.google.common.base.Throwables;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import twilightforest.item.TFItems;
 
 /**
@@ -215,7 +217,7 @@ public class GroupRenderer {
     private void renderFluid(FluidStack fluidStack, int column, int row) {
         Fluid fluid = fluidStack.getFluid();
         HoloInventory.fluidRenderFakeItem.setFluid(fluid);
-        String suffix = Config.renderSuffixDarkened ? EnumChatFormatting.GRAY + "L" : "L";
+        String suffix = Config.renderSuffixDarkened ? LITRE_DARKENED : LITRE;
         doRenderEntityItem(column, row, doStackSizeCrap(fluidStack.amount) + suffix);
     }
 
@@ -327,6 +329,15 @@ public class GroupRenderer {
     private static final String[] suffixNormal = { "", "K", "M", "B" };
     private static final String[] suffixDarkened = { "", EnumChatFormatting.GRAY + "K", EnumChatFormatting.GRAY + "M",
             EnumChatFormatting.GRAY + "B" };
+    private static final String LITRE = "L";
+    private static final String LITRE_DARKENED = EnumChatFormatting.GRAY + "L";
+
+    /**
+     * Stack sizes repeat heavily inside a hologram (a chest full of 64s) and only change when the server sends an
+     * update.
+     */
+    private static final Int2ObjectMap<String> STACK_SIZE_TEXT_CACHE = new Int2ObjectOpenHashMap<>();
+    private static boolean cachedSuffixDarkened = Config.renderSuffixDarkened;
 
     /**
      * Shifts GL & returns the string
@@ -336,7 +347,17 @@ public class GroupRenderer {
      */
     private String doStackSizeCrap(int stackSize) {
         if (stackSizeDebugOverride != 0) stackSize = stackSizeDebugOverride;
-        return formatStackSize(stackSize);
+        if (cachedSuffixDarkened != Config.renderSuffixDarkened) {
+            cachedSuffixDarkened = Config.renderSuffixDarkened;
+            STACK_SIZE_TEXT_CACHE.clear();
+        }
+        String text = STACK_SIZE_TEXT_CACHE.get(stackSize);
+        if (text == null) {
+            if (STACK_SIZE_TEXT_CACHE.size() > 4096) STACK_SIZE_TEXT_CACHE.clear();
+            text = formatStackSize(stackSize);
+            STACK_SIZE_TEXT_CACHE.put(stackSize, text);
+        }
+        return text;
     }
 
     private static String formatStackSize(long i) {
