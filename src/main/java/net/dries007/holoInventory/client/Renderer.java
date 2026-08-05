@@ -17,7 +17,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -57,11 +59,27 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 public class Renderer {
 
-    public static final HashMap<Integer, NamedData<ItemStack[]>> tileInventoryMap = new HashMap<>();
-    public static final HashMap<Integer, List<FluidTankInfo>> tileFluidHandlerMap = new HashMap<>();
-    public static final HashMap<Integer, NamedData<ItemStack[]>> entityMap = new HashMap<>();
-    public static final HashMap<Integer, NamedData<MerchantRecipeList>> merchantMap = new HashMap<>();
-    public static final HashMap<Integer, Long> requestMap = new HashMap<>();
+    /**
+     * These only ever grew: every inventory looked at during a session kept its contents alive until the world was
+     * left. Insertion ordered on purpose, access ordering would turn a read into a write and these are read from the
+     * render thread while the network thread fills them. Evicting the oldest is safe, the server resends the data for
+     * whatever is being looked at.
+     */
+    private static <V> HashMap<Integer, V> boundedCache() {
+        return new LinkedHashMap<Integer, V>() {
+
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<Integer, V> eldest) {
+                return size() > 1024;
+            }
+        };
+    }
+
+    public static final HashMap<Integer, NamedData<ItemStack[]>> tileInventoryMap = boundedCache();
+    public static final HashMap<Integer, List<FluidTankInfo>> tileFluidHandlerMap = boundedCache();
+    public static final HashMap<Integer, NamedData<ItemStack[]>> entityMap = boundedCache();
+    public static final HashMap<Integer, NamedData<MerchantRecipeList>> merchantMap = boundedCache();
+    public static final HashMap<Integer, Long> requestMap = boundedCache();
 
     private Coord coord;
     public boolean enabled = true;
