@@ -74,6 +74,8 @@ public class Renderer {
 
     public static final Renderer INSTANCE = new Renderer();
 
+    private static final Comparator<ItemStack> BY_STACK_SIZE_DESC = (a, b) -> Integer.compare(b.stackSize, a.stackSize);
+
     private final GroupRenderer itemGroupRenderer = new GroupRenderer();
     private final GroupRenderer fluidGroupRenderer = new GroupRenderer();
 
@@ -314,7 +316,7 @@ public class Renderer {
         }
 
         if (Config.mode != 0) {
-            list.sort(Comparator.<ItemStack>comparingInt(s -> s.stackSize).reversed());
+            list.sort(BY_STACK_SIZE_DESC);
             if (list.size() > wantedSize) list = list.subList(0, wantedSize);
         }
 
