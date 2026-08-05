@@ -20,31 +20,28 @@ import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_Z;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.MovingObjectPosition;
-import net.minecraftforge.common.util.ForgeDirection;
 
 public class Coord {
 
     public final int dim;
-    public double x;
-    public double y;
-    public double z;
+    public final double x;
+    public final double y;
+    public final double z;
 
     public Coord(int dim, MovingObjectPosition mop) {
         this.dim = dim;
-
-        switch (mop.typeOfHit) {
-            case BLOCK:
-                this.x = mop.blockX;
-                this.y = mop.blockY;
-                this.z = mop.blockZ;
-                break;
-            case ENTITY:
-                this.x = mop.entityHit.posX;
-                this.y = mop.entityHit.posY;
-                this.z = mop.entityHit.posZ;
-                break;
-            default:
-                break;
+        if (mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
+            this.x = mop.blockX;
+            this.y = mop.blockY;
+            this.z = mop.blockZ;
+        } else if (mop.typeOfHit == MovingObjectPosition.MovingObjectType.ENTITY) {
+            this.x = mop.entityHit.posX;
+            this.y = mop.entityHit.posY;
+            this.z = mop.entityHit.posZ;
+        } else {
+            this.x = 0;
+            this.y = 0;
+            this.z = 0;
         }
     }
 
@@ -62,14 +59,6 @@ public class Coord {
         tag.setInteger(NBT_KEY_Z, (int) z);
     }
 
-    public Coord offset(int side) {
-        ForgeDirection dir = ForgeDirection.getOrientation(side);
-        this.x += dir.offsetX;
-        this.y += dir.offsetY;
-        this.z += dir.offsetZ;
-        return this;
-    }
-
     @Override
     public int hashCode() {
         int result = dim;
@@ -81,7 +70,9 @@ public class Coord {
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof Coord coord) {
-            return this.x == coord.x && this.y == coord.y && this.z == coord.z && this.dim == coord.dim;
+            return Double.compare(this.x, coord.x) == 0 && Double.compare(this.y, coord.y) == 0
+                    && Double.compare(this.z, coord.z) == 0
+                    && this.dim == coord.dim;
         }
         return false;
     }

@@ -106,7 +106,7 @@ public class Renderer {
     public static final Int2ObjectMap<NamedData<MerchantRecipeList>> merchantMap = new BoundedCache<>();
     public static final Int2LongMap requestMap = new BoundedLongCache();
 
-    private Coord coord;
+    private double hologramX, hologramY, hologramZ;
     public boolean enabled = true;
     // used in Angelica to control when this renderer should be active
     public boolean angelicaOverride = false;
@@ -182,7 +182,10 @@ public class Renderer {
             Minecraft.getMinecraft().gameSettings.fancyGraphics = fancyGraphics;
         }
 
-        coord = new Coord(mc.theWorld.provider.dimensionId, mc.objectMouseOver);
+        final Coord coord = new Coord(mc.theWorld.provider.dimensionId, mc.objectMouseOver);
+        hologramX = coord.x;
+        hologramY = coord.y;
+        hologramZ = coord.z;
         itemGroupRenderer.reset();
         fluidGroupRenderer.reset();
         GroupRenderer.updateTime();
@@ -211,9 +214,9 @@ public class Renderer {
                         tileFluidHandlerMap.remove(coord);
                     }
 
-                    coord.x += 0.5;
-                    coord.y += 0.5;
-                    coord.z += 0.5;
+                    hologramX += 0.5;
+                    hologramY += 0.5;
+                    hologramZ += 0.5;
                     setRenderPos(partialTicks);
                     renderHologram(invData, fluidTankInfos);
                 } else {
@@ -260,7 +263,7 @@ public class Renderer {
      * @param namedData The things to render
      */
     private void renderMerchant(NamedData<MerchantRecipeList> namedData) {
-        coord.y += 2; // Adjust for villager height
+        hologramY += 2; // Adjust for villager height
         if (namedData.data.isEmpty()) return;
         final double distance = distance();
         if (distance < 1) return;
@@ -510,7 +513,7 @@ public class Renderer {
      * @param depth Shift towards the player if negative
      */
     private void moveAndRotate(double depth) {
-        GL11.glTranslated(coord.x - renderPosX, coord.y - renderPosY, coord.z - renderPosZ);
+        GL11.glTranslated(hologramX - renderPosX, hologramY - renderPosY, hologramZ - renderPosZ);
         GL11.glRotatef(-RenderManager.instance.playerViewY, 0.0F, 0.5F, 0.0F);
         GL11.glRotatef(RenderManager.instance.playerViewX, 0.5F, 0.0F, 0.0F);
         GL11.glTranslated(0, 0, depth);
@@ -528,9 +531,9 @@ public class Renderer {
     private double distance() {
         // it appears optifine might mess up the renderViewEntity's posX and lasttickposx, so we have to do it
         // ourselves
-        double dx = coord.x - renderPosX;
-        double dy = coord.y - renderPosY;
-        double dz = coord.z - renderPosZ;
+        double dx = hologramX - renderPosX;
+        double dy = hologramY - renderPosY;
+        double dz = hologramZ - renderPosZ;
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 }
