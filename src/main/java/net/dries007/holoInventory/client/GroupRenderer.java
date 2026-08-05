@@ -147,16 +147,19 @@ public class GroupRenderer {
     public void renderItems(List<ItemStack> itemStacks) {
         // item lighting is identical for every item in the group, so set it up once instead of per item per frame
         RenderHelper.enableStandardItemLighting();
-        int column = 0, row = 0;
-        for (ItemStack stack : itemStacks) {
-            renderItem(stack, column, row);
-            column++;
-            if (column >= columns) {
-                column = 0;
-                row++;
+        try {
+            int column = 0, row = 0;
+            for (ItemStack stack : itemStacks) {
+                renderItem(stack, column, row);
+                column++;
+                if (column >= columns) {
+                    column = 0;
+                    row++;
+                }
             }
+        } finally {
+            RenderHelper.disableStandardItemLighting();
         }
-        RenderHelper.disableStandardItemLighting();
     }
 
     /**
@@ -202,16 +205,19 @@ public class GroupRenderer {
 
     public void renderFluids(List<FluidTankInfo> fluidTankInfos) {
         RenderHelper.enableStandardItemLighting();
-        int column = 0, row = 0;
-        for (FluidTankInfo tankInfo : fluidTankInfos) {
-            renderFluid(tankInfo.fluid, column, row);
-            column++;
-            if (column >= columns) {
-                column = 0;
-                row++;
+        try {
+            int column = 0, row = 0;
+            for (FluidTankInfo tankInfo : fluidTankInfos) {
+                renderFluid(tankInfo.fluid, column, row);
+                column++;
+                if (column >= columns) {
+                    column = 0;
+                    row++;
+                }
             }
+        } finally {
+            RenderHelper.disableStandardItemLighting();
         }
-        RenderHelper.disableStandardItemLighting();
     }
 
     private void renderFluid(FluidStack fluidStack, int column, int row) {
