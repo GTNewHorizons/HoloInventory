@@ -64,15 +64,21 @@ import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.relauncher.Side;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
 
 public class ServerEventHandler {
 
+    private static final int MAX_CACHED = 1024;
+
     public final List<String> banUsers = new ArrayList<>();
     public final HashMap<String, String> overrideUsers = new HashMap<>();
-    public final Int2ObjectMap<InventoryData> mapBlockToInv = new Int2ObjectOpenHashMap<>();
-    public final Int2ObjectMap<FluidHandlerData> mapBlockToFluidHandler = new Int2ObjectOpenHashMap<>();
+    public final Int2ObjectLinkedOpenHashMap<InventoryData> mapBlockToInv = new Int2ObjectLinkedOpenHashMap<>();
+    public final Int2ObjectLinkedOpenHashMap<FluidHandlerData> mapBlockToFluidHandler = new Int2ObjectLinkedOpenHashMap<>();
+
+    private static <V> void putBounded(Int2ObjectLinkedOpenHashMap<V> map, int key, V value) {
+        map.putAndMoveToLast(key, value);
+        if (map.size() > MAX_CACHED) map.removeFirst();
+    }
 
     @Desugar
     private record CachedPatternInventory(WeakReference<IInventory> inventory, int hash) {
@@ -326,11 +332,12 @@ public class ServerEventHandler {
             inventoryData.update(inventory);
         }
         inventoryData.sendIfOld(player);
-        mapBlockToInv.put(id, inventoryData);
+        putBounded(mapBlockToInv, id, inventoryData);
     }
 
     public void clearInventoryData() {
         mapBlockToInv.clear();
+        mapBlockToFluidHandler.clear();
     }
 
     private void processFluidHandlerData(int id, EntityPlayerMP player, IFluidHandler fluidHandler) {
@@ -341,6 +348,6 @@ public class ServerEventHandler {
             fluidHandlerData.update(fluidHandler);
         }
         fluidHandlerData.sendIfOld(player);
-        mapBlockToFluidHandler.put(id, fluidHandlerData);
+        putBounded(mapBlockToFluidHandler, id, fluidHandlerData);
     }
 }
