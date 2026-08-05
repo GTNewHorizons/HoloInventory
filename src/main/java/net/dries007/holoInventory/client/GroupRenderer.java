@@ -179,8 +179,11 @@ public class GroupRenderer {
             }
         }
 
-        if (renderStack == null) renderStack = itemStack.copy();
+        if (renderStack == null) renderStack = itemStack;
 
+        final String stackSizeText = (itemStack.getMaxStackSize() == 1 && itemStack.stackSize == 1) ? null
+                : doStackSizeCrap(itemStack.stackSize);
+        final int realStackSize = renderStack.stackSize;
         if (!Config.renderMultiple) {
             renderStack.stackSize = 1;
         }
@@ -188,11 +191,11 @@ public class GroupRenderer {
         if (itemStack.hasEffect(0)) {
             GL11.glDisable(GL11.GL_LIGHTING);
         }
-        doRenderEntityItem(
-                column,
-                row,
-                (itemStack.getMaxStackSize() == 1 && itemStack.stackSize == 1) ? null
-                        : doStackSizeCrap(itemStack.stackSize));
+        try {
+            doRenderEntityItem(column, row, stackSizeText);
+        } finally {
+            renderStack.stackSize = realStackSize;
+        }
     }
 
     public void renderFluids(List<FluidTankInfo> fluidTankInfos) {
