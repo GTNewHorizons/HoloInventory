@@ -57,6 +57,8 @@ import it.unimi.dsi.fastutil.ints.Int2LongLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2LongMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 
 public class Renderer {
 
@@ -77,6 +79,16 @@ public class Renderer {
         }
     }
 
+    private static class BoundedObjectCache<K, V> extends Object2ObjectLinkedOpenHashMap<K, V> {
+
+        @Override
+        public V put(K key, V value) {
+            final V old = super.put(key, value);
+            if (size() > MAX_CACHED) removeFirst();
+            return old;
+        }
+    }
+
     /** @see BoundedCache */
     private static class BoundedLongCache extends Int2LongLinkedOpenHashMap {
 
@@ -88,8 +100,8 @@ public class Renderer {
         }
     }
 
-    public static final Int2ObjectMap<NamedData<ItemStack[]>> tileInventoryMap = new BoundedCache<>();
-    public static final Int2ObjectMap<List<FluidTankInfo>> tileFluidHandlerMap = new BoundedCache<>();
+    public static final Object2ObjectMap<Coord, NamedData<ItemStack[]>> tileInventoryMap = new BoundedObjectCache<>();
+    public static final Object2ObjectMap<Coord, List<FluidTankInfo>> tileFluidHandlerMap = new BoundedObjectCache<>();
     public static final Int2ObjectMap<NamedData<ItemStack[]>> entityMap = new BoundedCache<>();
     public static final Int2ObjectMap<NamedData<MerchantRecipeList>> merchantMap = new BoundedCache<>();
     public static final Int2LongMap requestMap = new BoundedLongCache();
@@ -183,20 +195,20 @@ public class Renderer {
                     // Check for local ban
                     if (Config.bannedTiles.contains(clazz)) return;
 
-                    NamedData<ItemStack[]> invData = tileInventoryMap.get(coord.hashCode());
+                    NamedData<ItemStack[]> invData = tileInventoryMap.get(coord);
                     if (invData != null) {
                         if (invData.clazz != null && !invData.clazz.equals(clazz)) {
                             // Render only if we know the content
                             invData = null;
-                            tileInventoryMap.remove(coord.hashCode());
+                            tileInventoryMap.remove(coord);
                         }
                     }
 
-                    List<FluidTankInfo> fluidTankInfos = tileFluidHandlerMap.get(coord.hashCode());
+                    List<FluidTankInfo> fluidTankInfos = tileFluidHandlerMap.get(coord);
                     if (fluidTankInfos != null && !(te instanceof IFluidHandler)) {
                         // Render only if we know the content
                         fluidTankInfos = null;
-                        tileFluidHandlerMap.remove(coord.hashCode());
+                        tileFluidHandlerMap.remove(coord);
                     }
 
                     coord.x += 0.5;
@@ -205,7 +217,7 @@ public class Renderer {
                     setRenderPos(partialTicks);
                     renderHologram(invData, fluidTankInfos);
                 } else {
-                    tileInventoryMap.remove(coord.hashCode());
+                    tileInventoryMap.remove(coord);
                 }
                 break;
             case ENTITY:

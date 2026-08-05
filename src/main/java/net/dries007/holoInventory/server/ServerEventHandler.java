@@ -13,7 +13,6 @@
 
 package net.dries007.holoInventory.server;
 
-import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_ID;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_TYPE;
 
 import java.lang.ref.WeakReference;
@@ -64,7 +63,7 @@ import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.relauncher.Side;
-import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 
 public class ServerEventHandler {
 
@@ -72,10 +71,10 @@ public class ServerEventHandler {
 
     public final List<String> banUsers = new ArrayList<>();
     public final HashMap<String, String> overrideUsers = new HashMap<>();
-    public final Int2ObjectLinkedOpenHashMap<InventoryData> mapBlockToInv = new Int2ObjectLinkedOpenHashMap<>();
-    public final Int2ObjectLinkedOpenHashMap<FluidHandlerData> mapBlockToFluidHandler = new Int2ObjectLinkedOpenHashMap<>();
+    public final Object2ObjectLinkedOpenHashMap<Coord, InventoryData> mapBlockToInv = new Object2ObjectLinkedOpenHashMap<>();
+    public final Object2ObjectLinkedOpenHashMap<Coord, FluidHandlerData> mapBlockToFluidHandler = new Object2ObjectLinkedOpenHashMap<>();
 
-    private static <V> void putBounded(Int2ObjectLinkedOpenHashMap<V> map, int key, V value) {
+    private static <V> void putBounded(Object2ObjectLinkedOpenHashMap<Coord, V> map, Coord key, V value) {
         map.putAndMoveToLast(key, value);
         if (map.size() > MAX_CACHED) map.removeFirst();
     }
@@ -185,11 +184,6 @@ public class ServerEventHandler {
                 case BLOCK:
                     handleLookedAtBlock(world, player, mo);
                     break;
-                case ENTITY:
-                    if (mo.entityHit instanceof IInventory) {
-                        processInventoryData(mo.entityHit.getEntityId(), player, (IInventory) mo.entityHit);
-                    }
-                    break;
                 default:
                     break;
             }
@@ -207,7 +201,7 @@ public class ServerEventHandler {
         handleInventoryBlock(world, player, mo, coord, te);
 
         if (te instanceof IFluidHandler) {
-            processFluidHandlerData(coord.hashCode(), player, (IFluidHandler) te);
+            processFluidHandlerData(coord, player, (IFluidHandler) te);
         }
     }
 
@@ -241,11 +235,11 @@ public class ServerEventHandler {
                     teChest,
                     (TileEntityChest) world.getTileEntity(x + 1, y, z));
 
-            processInventoryData(coord.hashCode(), player, inventory);
+            processInventoryData(coord, player, inventory);
         } else if (HoloInventory.isAE2Loaded && te instanceof TileInterface) {
             final IInventory patterns = ((TileInterface) te).getInventoryByName("patterns");
             final IInventory wrapped = getCachedPatternsWrapper(world, ((TileInterface) te).getCustomName(), patterns);
-            processInventoryData(coord.hashCode(), player, wrapped);
+            processInventoryData(coord, player, wrapped);
         } else if (HoloInventory.isAE2Loaded && te instanceof IPartHost host) {
             final Vec3 position = mo.hitVec.addVector(-mo.blockX, -mo.blockY, -mo.blockZ);
             final SelectedPart sp = host.selectPart(position);
@@ -255,16 +249,16 @@ public class ServerEventHandler {
                         world,
                         ((PartInterface) sp.part).getCustomName(),
                         patterns);
-                processInventoryData(coord.hashCode(), player, wrapped);
+                processInventoryData(coord, player, wrapped);
             } else {
                 removeInventoryData(coord, player);
             }
         } else if (te instanceof IInventory) {
-            processInventoryData(coord.hashCode(), player, (IInventory) te);
+            processInventoryData(coord, player, (IInventory) te);
         } else if (te instanceof TileEntityEnderChest) {
-            processInventoryData(coord.hashCode(), player, player.getInventoryEnderChest());
+            processInventoryData(coord, player, player.getInventoryEnderChest());
         } else if (te instanceof BlockJukebox.TileEntityJukebox realTe) {
-            processInventoryData(coord.hashCode(), player, JUKEBOX_NAME, realTe.func_145856_a());
+            processInventoryData(coord, player, JUKEBOX_NAME, realTe.func_145856_a());
         }
     }
 
@@ -280,27 +274,25 @@ public class ServerEventHandler {
     }
 
     private void checkForChangedType(Coord coord, String type, EntityPlayerMP player) {
-        int id = coord.hashCode();
-        final InventoryData data = mapBlockToInv.get(id);
+        final InventoryData data = mapBlockToInv.get(coord);
         if (data != null && !type.equals(data.getType())) {
-            doRemoveInventoryData(id, player, data);
+            doRemoveInventoryData(coord, player, data);
         }
     }
 
     private void removeInventoryData(Coord coord, EntityPlayerMP player) {
-        int id = coord.hashCode();
-        final InventoryData inventoryData = mapBlockToInv.get(id);
+        final InventoryData inventoryData = mapBlockToInv.get(coord);
         if (inventoryData != null) {
-            doRemoveInventoryData(id, player, inventoryData);
+            doRemoveInventoryData(coord, player, inventoryData);
         }
     }
 
-    private void doRemoveInventoryData(int id, EntityPlayerMP player, InventoryData inventoryData) {
+    private void doRemoveInventoryData(Coord coord, EntityPlayerMP player, InventoryData inventoryData) {
         inventoryData.playerSet.remove(player);
-        if (inventoryData.playerSet.isEmpty()) mapBlockToInv.remove(id);
+        if (inventoryData.playerSet.isEmpty()) mapBlockToInv.remove(coord);
         final NBTTagCompound root = new NBTTagCompound();
         root.setByte(NBT_KEY_TYPE, (byte) 0);
-        root.setInteger(NBT_KEY_ID, id);
+        coord.writeToNBT(root);
         HoloInventory.getSnw().sendTo(new RemoveInventoryMessage(root), player);
     }
 
@@ -320,19 +312,19 @@ public class ServerEventHandler {
         return new FakeInventory(name, outputs);
     }
 
-    private void processInventoryData(int id, EntityPlayerMP player, String name, ItemStack... itemStacks) {
-        processInventoryData(id, player, new FakeInventory(name, itemStacks));
+    private void processInventoryData(Coord coord, EntityPlayerMP player, String name, ItemStack... itemStacks) {
+        processInventoryData(coord, player, new FakeInventory(name, itemStacks));
     }
 
-    private void processInventoryData(int id, EntityPlayerMP player, IInventory inventory) {
-        InventoryData inventoryData = mapBlockToInv.get(id);
+    private void processInventoryData(Coord coord, EntityPlayerMP player, IInventory inventory) {
+        InventoryData inventoryData = mapBlockToInv.get(coord);
         if (inventoryData == null) {
-            inventoryData = new InventoryData(inventory, id);
+            inventoryData = new InventoryData(inventory, coord);
         } else {
             inventoryData.update(inventory);
         }
         inventoryData.sendIfOld(player);
-        putBounded(mapBlockToInv, id, inventoryData);
+        putBounded(mapBlockToInv, coord, inventoryData);
     }
 
     public void clearInventoryData() {
@@ -340,14 +332,14 @@ public class ServerEventHandler {
         mapBlockToFluidHandler.clear();
     }
 
-    private void processFluidHandlerData(int id, EntityPlayerMP player, IFluidHandler fluidHandler) {
-        FluidHandlerData fluidHandlerData = mapBlockToFluidHandler.get(id);
+    private void processFluidHandlerData(Coord coord, EntityPlayerMP player, IFluidHandler fluidHandler) {
+        FluidHandlerData fluidHandlerData = mapBlockToFluidHandler.get(coord);
         if (fluidHandlerData == null) {
-            fluidHandlerData = new FluidHandlerData(fluidHandler, id);
+            fluidHandlerData = new FluidHandlerData(fluidHandler, coord);
         } else {
             fluidHandlerData.update(fluidHandler);
         }
         fluidHandlerData.sendIfOld(player);
-        putBounded(mapBlockToFluidHandler, id, fluidHandlerData);
+        putBounded(mapBlockToFluidHandler, coord, fluidHandlerData);
     }
 }

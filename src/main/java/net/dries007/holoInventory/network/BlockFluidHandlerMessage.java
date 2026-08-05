@@ -1,13 +1,13 @@
 package net.dries007.holoInventory.network;
 
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_CAPACITY;
-import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_ID;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_TANK;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import net.dries007.holoInventory.client.Renderer;
+import net.dries007.holoInventory.util.Coord;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -59,8 +59,8 @@ public class BlockFluidHandlerMessage implements IMessage {
                     tankInfos.add(new FluidTankInfo(stack, tag.getInteger(NBT_KEY_CAPACITY)));
                 }
             }
-            final int id = message.data.getInteger(NBT_KEY_ID);
-            Minecraft.getMinecraft().func_152344_a(() -> Renderer.tileFluidHandlerMap.put(id, tankInfos));
+            final Coord coord = new Coord(message.data);
+            Minecraft.getMinecraft().func_152344_a(() -> Renderer.tileFluidHandlerMap.put(coord, tankInfos));
 
             return null;
         }

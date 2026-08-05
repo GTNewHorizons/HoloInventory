@@ -13,7 +13,6 @@
 
 package net.dries007.holoInventory.util;
 
-import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_ID;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_LIST;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_NAME;
 
@@ -32,14 +31,14 @@ import com.google.common.base.Strings;
 
 public class InventoryData {
 
-    public final int id;
+    public final Coord coord;
     public WeakReference<IInventory> te;
     public final WeakHashMap<EntityPlayer, NBTTagCompound> playerSet = new WeakHashMap<>();
     public final String name;
     public String type;
 
-    public InventoryData(IInventory te, int id) {
-        this.id = id;
+    public InventoryData(IInventory te, Coord coord) {
+        this.coord = coord;
         this.te = new WeakReference<>(te);
         this.name = Strings.nullToEmpty(te.getInventoryName());
         this.type = te.getClass().getCanonicalName();
@@ -52,7 +51,7 @@ public class InventoryData {
             return;
         }
         NBTTagCompound data = new NBTTagCompound();
-        data.setInteger(NBT_KEY_ID, this.id);
+        coord.writeToNBT(data);
         data.setString(NBT_KEY_NAME, name);
         data.setTag(NBT_KEY_LIST, InventoryDecoderRegistry.toNBT(ste));
 

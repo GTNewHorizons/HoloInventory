@@ -17,12 +17,12 @@ import net.minecraftforge.fluids.IFluidHandler;
 
 public class FluidHandlerData {
 
-    public final int id;
+    public final Coord coord;
     public WeakReference<IFluidHandler> te;
     public final WeakHashMap<EntityPlayer, NBTTagCompound> playerSet = new WeakHashMap<>();
 
-    public FluidHandlerData(IFluidHandler fluidHandler, int id) {
-        this.id = id;
+    public FluidHandlerData(IFluidHandler fluidHandler, Coord coord) {
+        this.coord = coord;
         this.te = new WeakReference<>(fluidHandler);
     }
 
@@ -32,7 +32,7 @@ public class FluidHandlerData {
             return;
         }
         NBTTagCompound data = new NBTTagCompound();
-        data.setInteger(NBT_KEY_ID, id);
+        coord.writeToNBT(data);
         data.setTag(NBT_KEY_TANK, encodeFluidTankInfo(fluidHandler));
 
         if (!playerSet.containsKey(player) || !playerSet.get(player).equals(data)) {

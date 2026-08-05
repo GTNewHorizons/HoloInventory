@@ -13,6 +13,12 @@
 
 package net.dries007.holoInventory.util;
 
+import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_DIM;
+import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_X;
+import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_Y;
+import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_Z;
+
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -42,6 +48,20 @@ public class Coord {
         }
     }
 
+    public Coord(NBTTagCompound tag) {
+        this.dim = tag.getInteger(NBT_KEY_DIM);
+        this.x = tag.getInteger(NBT_KEY_X);
+        this.y = tag.getInteger(NBT_KEY_Y);
+        this.z = tag.getInteger(NBT_KEY_Z);
+    }
+
+    public void writeToNBT(NBTTagCompound tag) {
+        tag.setInteger(NBT_KEY_DIM, dim);
+        tag.setInteger(NBT_KEY_X, (int) x);
+        tag.setInteger(NBT_KEY_Y, (int) y);
+        tag.setInteger(NBT_KEY_Z, (int) z);
+    }
+
     public Coord offset(int side) {
         ForgeDirection dir = ForgeDirection.getOrientation(side);
         this.x += dir.offsetX;
@@ -50,10 +70,15 @@ public class Coord {
         return this;
     }
 
+    @Override
     public int hashCode() {
-        return (int) this.x + ((int) this.z << 8) + ((int) this.y << 16) + (this.dim << 24);
+        int result = dim;
+        result = 31 * result + Double.hashCode(x);
+        result = 31 * result + Double.hashCode(y);
+        return 31 * result + Double.hashCode(z);
     }
 
+    @Override
     public boolean equals(Object obj) {
         if (obj instanceof Coord) {
             Coord coord = (Coord) obj;

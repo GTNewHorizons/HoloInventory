@@ -2,7 +2,6 @@ package net.dries007.holoInventory.network;
 
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_CLASS;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_COUNT;
-import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_ID;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_LIST;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_NAME;
 
@@ -11,6 +10,7 @@ import java.util.List;
 
 import net.dries007.holoInventory.Config;
 import net.dries007.holoInventory.client.Renderer;
+import net.dries007.holoInventory.util.Coord;
 import net.dries007.holoInventory.util.NamedData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
@@ -62,7 +62,7 @@ public class BlockInventoryMessage implements IMessage {
             if (!ctx.side.isClient()) return null;
 
             final NBTTagCompound dataTag = message.data;
-            final int tileId = dataTag.getInteger(NBT_KEY_ID);
+            final Coord coord = new Coord(dataTag);
             final String name = dataTag.getString(NBT_KEY_NAME);
             final String clazz = dataTag.hasKey(NBT_KEY_CLASS) ? dataTag.getString(NBT_KEY_CLASS) : null;
 
@@ -138,7 +138,7 @@ public class BlockInventoryMessage implements IMessage {
                 data = new NamedData<>(name, itemStacks);
             }
 
-            Minecraft.getMinecraft().func_152344_a(() -> Renderer.tileInventoryMap.put(tileId, data));
+            Minecraft.getMinecraft().func_152344_a(() -> Renderer.tileInventoryMap.put(coord, data));
             return null;
         }
     }
