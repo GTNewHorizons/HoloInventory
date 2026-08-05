@@ -83,6 +83,8 @@ public class Renderer {
     String cachedSearch = "";
     private boolean fancyGraphics;
     private final ArrayList<ItemStack> filteredItems = new ArrayList<>();
+    private boolean loggedRenderError = false;
+    private boolean loggedFilterError = false;
 
     @SubscribeEvent
     public void optifineIsAnnoying(RenderWorldLastEvent event) {
@@ -101,9 +103,12 @@ public class Renderer {
                 doEvent(event.partialTicks);
             }
         } catch (Exception e) {
-            HoloInventory.getLogger().warn("Some error while rendering the hologram :(");
-            HoloInventory.getLogger().warn("Please make an issue on github if this happens");
-            e.printStackTrace();
+            if (!loggedRenderError) {
+                loggedRenderError = true;
+                HoloInventory.getLogger().warn(
+                        "Some error while rendering the hologram :( Please make an issue on github if this happens. Further render errors are not logged.",
+                        e);
+            }
         }
     }
 
@@ -266,7 +271,11 @@ public class Renderer {
                 return filteredItems;
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            if (!loggedFilterError) {
+                loggedFilterError = true;
+                HoloInventory.getLogger()
+                        .warn("Could not filter the hologram by the NEI search. Further errors are not logged.", ex);
+            }
             filteredItems.clear();
         }
         Collections.addAll(filteredItems, items);

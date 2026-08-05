@@ -13,6 +13,7 @@
 
 package net.dries007.holoInventory.client;
 
+import net.dries007.holoInventory.HoloInventory;
 import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.entity.item.EntityItem;
@@ -22,6 +23,8 @@ import cpw.mods.fml.common.FMLCommonHandler;
 
 public class ClientHandler {
 
+    private static boolean loggedItemRenderError = false;
+
     public static final KeyManager KEY_MANAGER = new KeyManager();
     public static final RenderItem RENDER_ITEM = new RenderItem() {
 
@@ -29,7 +32,13 @@ public class ClientHandler {
         public void doRender(EntityItem par1EntityItem, double par2, double par4, double par6, float par8, float par9) {
             try {
                 super.doRender(par1EntityItem, par2, par4, par6, par8, par9);
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                if (!loggedItemRenderError) {
+                    loggedItemRenderError = true;
+                    HoloInventory.getLogger()
+                            .warn("An item could not be rendered in a hologram. Further errors are not logged.", e);
+                }
+            }
         }
 
         @Override
