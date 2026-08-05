@@ -175,8 +175,7 @@ public class ServerEventHandler {
 
             switch (mo.typeOfHit) {
                 case BLOCK:
-                    handleInventoryBlock(world, player, mo);
-                    handleFluidHandlerBlock(world, player, mo);
+                    handleLookedAtBlock(world, player, mo);
                     break;
                 case ENTITY:
                     if (mo.entityHit instanceof IInventory) {
@@ -193,14 +192,25 @@ public class ServerEventHandler {
         }
     }
 
-    private void handleInventoryBlock(WorldServer world, EntityPlayerMP player, MovingObjectPosition mo) {
+    private void handleLookedAtBlock(WorldServer world, EntityPlayerMP player, MovingObjectPosition mo) {
         final Coord coord = new Coord(world.provider.dimensionId, mo);
-        final int x = (int) coord.x, y = (int) coord.y, z = (int) coord.z;
-        final TileEntity te = world.getTileEntity(x, y, z);
+        final TileEntity te = world.getTileEntity((int) coord.x, (int) coord.y, (int) coord.z);
         if (te == null) return;
 
-        checkForChangedType(coord, te, player);
-        if (Config.bannedTiles.contains(te.getClass().getCanonicalName())) {
+        handleInventoryBlock(world, player, mo, coord, te);
+
+        if (te instanceof IFluidHandler) {
+            processFluidHandlerData(coord.hashCode(), player, (IFluidHandler) te);
+        }
+    }
+
+    private void handleInventoryBlock(WorldServer world, EntityPlayerMP player, MovingObjectPosition mo, Coord coord,
+            TileEntity te) {
+        final int x = (int) coord.x, y = (int) coord.y, z = (int) coord.z;
+        final String type = te.getClass().getCanonicalName();
+
+        checkForChangedType(coord, type, player);
+        if (Config.bannedTiles.contains(type)) {
             // BANNED THING
             removeInventoryData(coord, player);
         } else if (te instanceof TileEntityChest) {
@@ -265,20 +275,18 @@ public class ServerEventHandler {
         return ret;
     }
 
-    private void checkForChangedType(Coord coord, TileEntity te, EntityPlayerMP player) {
+    private void checkForChangedType(Coord coord, String type, EntityPlayerMP player) {
         int id = coord.hashCode();
-        if (mapBlockToInv.containsKey(id)) {
-            final InventoryData data = mapBlockToInv.get(id);
-            if (!te.getClass().getCanonicalName().equals(data.getType())) {
-                doRemoveInventoryData(id, player, data);
-            }
+        final InventoryData data = mapBlockToInv.get(id);
+        if (data != null && !type.equals(data.getType())) {
+            doRemoveInventoryData(id, player, data);
         }
     }
 
     private void removeInventoryData(Coord coord, EntityPlayerMP player) {
         int id = coord.hashCode();
-        if (mapBlockToInv.containsKey(id)) {
-            final InventoryData inventoryData = mapBlockToInv.get(id);
+        final InventoryData inventoryData = mapBlockToInv.get(id);
+        if (inventoryData != null) {
             doRemoveInventoryData(id, player, inventoryData);
         }
     }
@@ -325,17 +333,6 @@ public class ServerEventHandler {
 
     public void clearInventoryData() {
         mapBlockToInv.clear();
-    }
-
-    private void handleFluidHandlerBlock(WorldServer world, EntityPlayerMP player, MovingObjectPosition mo) {
-        final Coord coord = new Coord(world.provider.dimensionId, mo);
-        final int x = (int) coord.x, y = (int) coord.y, z = (int) coord.z;
-        final TileEntity te = world.getTileEntity(x, y, z);
-        if (te == null) return;
-
-        if (te instanceof IFluidHandler) {
-            processFluidHandlerData(coord.hashCode(), player, (IFluidHandler) te);
-        }
     }
 
     private void processFluidHandlerData(int id, EntityPlayerMP player, IFluidHandler fluidHandler) {
