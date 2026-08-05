@@ -85,6 +85,8 @@ public class Renderer {
     private final ArrayList<ItemStack> filteredItems = new ArrayList<>();
     private boolean loggedRenderError = false;
     private boolean loggedFilterError = false;
+    private int glassesCheckedOnTick = -1;
+    private boolean glassesCheckResult;
 
     @SubscribeEvent
     public void optifineIsAnnoying(RenderWorldLastEvent event) {
@@ -99,7 +101,7 @@ public class Renderer {
         }
         final EntityPlayer player = Minecraft.getMinecraft().thePlayer;
         try {
-            if (!Config.requireGlasses || HoloGlasses.shouldRender(player)) {
+            if (!Config.requireGlasses || shouldRenderFor(player)) {
                 doEvent(event.partialTicks);
             }
         } catch (Exception e) {
@@ -110,6 +112,18 @@ public class Renderer {
                         e);
             }
         }
+    }
+
+    /**
+     * Walks the armour slots plus the Baubles and Tinkers inventories, so it is far too much work to redo on every
+     * frame. Equipment can only change on a tick boundary anyway.
+     */
+    private boolean shouldRenderFor(EntityPlayer player) {
+        if (player.ticksExisted != glassesCheckedOnTick) {
+            glassesCheckedOnTick = player.ticksExisted;
+            glassesCheckResult = HoloGlasses.shouldRender(player);
+        }
+        return glassesCheckResult;
     }
 
     private void doEvent(float partialTicks) {
