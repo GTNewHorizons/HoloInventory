@@ -320,7 +320,7 @@ public class Renderer {
             if (list.size() > wantedSize) list = list.subList(0, wantedSize);
         }
 
-        if (Config.cycle != 0) {
+        if (Config.cycle > 0 && !list.isEmpty()) {
             int i = (int) ((Minecraft.getMinecraft().theWorld.getTotalWorldTime() / Config.cycle) % list.size());
             list = Collections.singletonList(list.get(i));
         }
