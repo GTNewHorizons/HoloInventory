@@ -143,6 +143,8 @@ public class GroupRenderer {
     }
 
     public void renderItems(List<ItemStack> itemStacks) {
+        // item lighting is identical for every item in the group, so set it up once instead of per item per frame
+        RenderHelper.enableStandardItemLighting();
         int column = 0, row = 0;
         for (ItemStack stack : itemStacks) {
             renderItem(stack, column, row);
@@ -152,6 +154,7 @@ public class GroupRenderer {
                 row++;
             }
         }
+        RenderHelper.disableStandardItemLighting();
     }
 
     /**
@@ -188,9 +191,6 @@ public class GroupRenderer {
             renderStack.stackSize = 1;
         }
         fakeEntityItem.setEntityItemStack(renderStack);
-        if (itemStack.hasEffect(0)) {
-            GL11.glDisable(GL11.GL_LIGHTING);
-        }
         try {
             doRenderEntityItem(column, row, stackSizeText);
         } finally {
@@ -199,6 +199,7 @@ public class GroupRenderer {
     }
 
     public void renderFluids(List<FluidTankInfo> fluidTankInfos) {
+        RenderHelper.enableStandardItemLighting();
         int column = 0, row = 0;
         for (FluidTankInfo tankInfo : fluidTankInfos) {
             renderFluid(tankInfo.fluid, column, row);
@@ -208,6 +209,7 @@ public class GroupRenderer {
                 row++;
             }
         }
+        RenderHelper.disableStandardItemLighting();
     }
 
     private void renderFluid(FluidStack fluidStack, int column, int row) {
@@ -218,7 +220,6 @@ public class GroupRenderer {
     }
 
     private void doRenderEntityItem(int column, int row, String stackSizeText) {
-        RenderHelper.enableStandardItemLighting();
         GL11.glPushMatrix();
         GL11.glTranslatef(width - ((column + 0.2f) * scale * spacing), height - ((row + 0.05f) * scale * spacing), 0f);
         GL11.glTranslatef(0, offset, 0);
@@ -249,9 +250,9 @@ public class GroupRenderer {
         }
         RenderItem.renderInFrame = false;
         GL11.glPopMatrix();
-        RenderHelper.disableStandardItemLighting();
         if (renderText && stackSizeText != null) {
             GL11.glPushMatrix();
+            GL11.glDisable(GL11.GL_LIGHTING);
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glTranslatef(
                     width - ((column + 0.2f) * scale * spacing),
@@ -266,6 +267,7 @@ public class GroupRenderer {
             RenderManager.instance.getFontRenderer().drawString(stackSizeText, 0, 0, TEXT_COLOR, true);
             GL11.glDisable(GL12.GL_RESCALE_NORMAL);
             GL11.glEnable(GL11.GL_DEPTH_TEST);
+            GL11.glEnable(GL11.GL_LIGHTING);
             GL11.glPopMatrix();
         }
     }
