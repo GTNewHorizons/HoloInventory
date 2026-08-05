@@ -136,7 +136,7 @@ public class Renderer {
         fancyGraphics = Minecraft.getMinecraft().gameSettings.fancyGraphics;
     }
 
-    // change to RenderGameOverlayEvent so shaders don't effect the render.
+    // change to RenderGameOverlayEvent so shaders don't affect the render.
     @SubscribeEvent
     public void renderEvent(RenderGameOverlayEvent.Post event) {
         if (!enabled || event.type != ElementType.HELMET || angelicaOverride) {
@@ -393,7 +393,7 @@ public class Renderer {
      * Actually renders a regular hologram
      *
      * @param itemStacks The itemStacks that will be rendered
-     * @param distance   The distance the player is from the hologram, passed to avoid 2th calculation.
+     * @param distance   The distance the player is from the hologram, passed to avoid 2nd calculation.
      */
     private void doRenderHologram(@Nullable String name, @Nonnull List<ItemStack> itemStacks,
             @Nonnull List<FluidTankInfo> fluidTankInfos, double distance) {

@@ -80,8 +80,7 @@ public class Coord {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof Coord) {
-            Coord coord = (Coord) obj;
+        if (obj instanceof Coord coord) {
             return this.x == coord.x && this.y == coord.y && this.z == coord.z && this.dim == coord.dim;
         }
         return false;

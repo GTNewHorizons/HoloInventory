@@ -20,7 +20,6 @@ import net.dries007.holoInventory.Config;
 import net.dries007.holoInventory.HoloInventory;
 import net.dries007.holoInventory.network.ResetMessage;
 import net.minecraft.command.CommandBase;
-import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.command.WrongUsageException;
 import net.minecraft.entity.player.EntityPlayer;
@@ -54,8 +53,7 @@ public class CommandHoloInventory extends CommandBase {
     @Override
     public List<String> addTabCompletionOptions(ICommandSender sender, String[] args) {
         switch (args.length) {
-            default:
-                return null;
+
             case 1:
                 if (isOp(sender)) {
                     return getListOfStringsMatchingLastWord(args, "reset", "reload", "overrideName", "ban", "unban");
@@ -68,6 +66,8 @@ public class CommandHoloInventory extends CommandBase {
                 } else {
                     return getListOfStringsFromIterableMatchingLastWord(args, getAllList());
                 }
+            default:
+                return null;
         }
     }
 
@@ -202,7 +202,7 @@ public class CommandHoloInventory extends CommandBase {
 
             if (isOp(sender)) {
                 if (args.length == 1) {
-                    if (getAllList().size() == 0) {
+                    if (getAllList().isEmpty()) {
                         sender.addChatMessage(
                                 new ChatComponentText(
                                         EnumChatFormatting.RED + "You didn't ban any inventories yet..."));
@@ -243,8 +243,4 @@ public class CommandHoloInventory extends CommandBase {
         }
     }
 
-    @Override
-    public int compareTo(Object par1Obj) {
-        return super.compareTo((ICommand) par1Obj);
-    }
 }

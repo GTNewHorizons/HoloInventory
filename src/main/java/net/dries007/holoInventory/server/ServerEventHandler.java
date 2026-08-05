@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -178,12 +179,8 @@ public class ServerEventHandler {
             final MovingObjectPosition mo = Helper.getPlayerLookingSpot(player);
             if (mo == null) return;
 
-            switch (mo.typeOfHit) {
-                case BLOCK:
-                    handleLookedAtBlock(world, player, mo);
-                    break;
-                default:
-                    break;
+            if (Objects.requireNonNull(mo.typeOfHit) == MovingObjectPosition.MovingObjectType.BLOCK) {
+                handleLookedAtBlock(world, player, mo);
             }
         } catch (Exception e) {
             HoloInventory.getLogger().warn("Some error while sending over inventory, no hologram for you :(");
