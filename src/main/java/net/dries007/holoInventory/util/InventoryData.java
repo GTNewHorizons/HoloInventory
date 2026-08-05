@@ -36,6 +36,8 @@ public class InventoryData {
     public final WeakHashMap<EntityPlayer, NBTTagCompound> playerSet = new WeakHashMap<>();
     public final String name;
     public String type;
+    private long snapshotTick = Long.MIN_VALUE;
+    private NBTTagCompound snapshot;
 
     public InventoryData(IInventory te, Coord coord) {
         this.coord = coord;
@@ -50,14 +52,18 @@ public class InventoryData {
         if (ste == null) {
             return;
         }
-        NBTTagCompound data = new NBTTagCompound();
-        coord.writeToNBT(data);
-        data.setString(NBT_KEY_NAME, name);
-        data.setTag(NBT_KEY_LIST, InventoryDecoderRegistry.toNBT(ste));
+        final long tick = player.worldObj.getTotalWorldTime();
+        if (snapshot == null || snapshotTick != tick) {
+            snapshotTick = tick;
+            snapshot = new NBTTagCompound();
+            coord.writeToNBT(snapshot);
+            snapshot.setString(NBT_KEY_NAME, name);
+            snapshot.setTag(NBT_KEY_LIST, InventoryDecoderRegistry.toNBT(ste));
+        }
 
-        if (!playerSet.containsKey(player) || !playerSet.get(player).equals(data)) {
-            playerSet.put(player, data);
-            HoloInventory.getSnw().sendTo(new BlockInventoryMessage(data), player);
+        if (!snapshot.equals(playerSet.get(player))) {
+            playerSet.put(player, snapshot);
+            HoloInventory.getSnw().sendTo(new BlockInventoryMessage(snapshot), player);
         }
     }
 

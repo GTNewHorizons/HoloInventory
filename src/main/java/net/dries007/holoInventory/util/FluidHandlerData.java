@@ -20,6 +20,8 @@ public class FluidHandlerData {
     public final Coord coord;
     public WeakReference<IFluidHandler> te;
     public final WeakHashMap<EntityPlayer, NBTTagCompound> playerSet = new WeakHashMap<>();
+    private long snapshotTick = Long.MIN_VALUE;
+    private NBTTagCompound snapshot;
 
     public FluidHandlerData(IFluidHandler fluidHandler, Coord coord) {
         this.coord = coord;
@@ -31,13 +33,17 @@ public class FluidHandlerData {
         if (fluidHandler == null) {
             return;
         }
-        NBTTagCompound data = new NBTTagCompound();
-        coord.writeToNBT(data);
-        data.setTag(NBT_KEY_TANK, encodeFluidTankInfo(fluidHandler));
+        final long tick = player.worldObj.getTotalWorldTime();
+        if (snapshot == null || snapshotTick != tick) {
+            snapshotTick = tick;
+            snapshot = new NBTTagCompound();
+            coord.writeToNBT(snapshot);
+            snapshot.setTag(NBT_KEY_TANK, encodeFluidTankInfo(fluidHandler));
+        }
 
-        if (!playerSet.containsKey(player) || !playerSet.get(player).equals(data)) {
-            playerSet.put(player, data);
-            HoloInventory.getSnw().sendTo(new BlockFluidHandlerMessage(data), player);
+        if (!snapshot.equals(playerSet.get(player))) {
+            playerSet.put(player, snapshot);
+            HoloInventory.getSnw().sendTo(new BlockFluidHandlerMessage(snapshot), player);
         }
     }
 
