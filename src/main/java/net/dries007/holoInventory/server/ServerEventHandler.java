@@ -97,6 +97,18 @@ public class ServerEventHandler {
             }
             return patterns;
         }
+
+        private boolean matches(IInventory inventory) {
+            if (patterns.tagCount() != inventory.getSizeInventory()) return false;
+
+            for (int i = 0; i < patterns.tagCount(); i++) {
+                final NBTTagCompound cached = patterns.getCompoundTagAt(i);
+                final ItemStack stack = inventory.getStackInSlot(i);
+                final NBTTagCompound current = stack == null ? null : stack.getTagCompound();
+                if (current == null ? !cached.hasNoTags() : !current.equals(cached)) return false;
+            }
+            return true;
+        }
     }
 
     final Map<IInventory, CachedPatternInventory> wrappedInventoryCache = new WeakHashMap<>();
@@ -277,9 +289,10 @@ public class ServerEventHandler {
 
     private IInventory getCachedPatternsWrapper(WorldServer world, String name, IInventory patterns) {
         CachedPatternInventory cache = wrappedInventoryCache.get(patterns);
-        final NBTTagList snapshot = CachedPatternInventory.snapshot(patterns);
-        if (cache == null || !cache.patterns.equals(snapshot)) {
-            cache = new CachedPatternInventory(convertToOutputItems(name, patterns, world), snapshot);
+        if (cache == null || !cache.matches(patterns)) {
+            cache = new CachedPatternInventory(
+                    convertToOutputItems(name, patterns, world),
+                    CachedPatternInventory.snapshot(patterns));
             wrappedInventoryCache.put(patterns, cache);
         }
         return cache.inventory;
