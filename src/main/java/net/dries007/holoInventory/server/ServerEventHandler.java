@@ -187,8 +187,7 @@ public class ServerEventHandler {
             }
         } catch (Exception e) {
             HoloInventory.getLogger().warn("Some error while sending over inventory, no hologram for you :(");
-            HoloInventory.getLogger().warn("Please make an issue on github if this happens.");
-            e.printStackTrace();
+            HoloInventory.getLogger().warn("Please make an issue on github if this happens.", e);
         }
     }
 
