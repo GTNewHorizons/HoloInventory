@@ -51,6 +51,8 @@ import net.minecraftforge.event.entity.player.EntityInteractEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fluids.IFluidHandler;
 
+import com.github.bsideup.jabel.Desugar;
+
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.parts.IPartHost;
@@ -72,7 +74,8 @@ public class ServerEventHandler {
     public final Int2ObjectMap<InventoryData> mapBlockToInv = new Int2ObjectOpenHashMap<>();
     public final Int2ObjectMap<FluidHandlerData> mapBlockToFluidHandler = new Int2ObjectOpenHashMap<>();
 
-    private static class CachedPatternInventory {
+    @Desugar
+    private record CachedPatternInventory(WeakReference<IInventory> inventory, int hash) {
 
         public static int computeHash(IInventory key) {
             int h = 0;
@@ -86,13 +89,10 @@ public class ServerEventHandler {
             return h;
         }
 
-        public CachedPatternInventory(IInventory wrapper, IInventory key) {
-            inventory = new WeakReference<>(wrapper);
-            hash = computeHash(key);
+        private CachedPatternInventory(IInventory inventory, IInventory hash) {
+            this(new WeakReference<>(inventory), computeHash(hash));
         }
 
-        public final WeakReference<IInventory> inventory;
-        public final int hash;
     }
 
     final Map<IInventory, CachedPatternInventory> wrappedInventoryCache = new WeakHashMap<>();
@@ -214,9 +214,8 @@ public class ServerEventHandler {
         if (Config.bannedTiles.contains(type)) {
             // BANNED THING
             removeInventoryData(coord, player);
-        } else if (te instanceof TileEntityChest) {
+        } else if (te instanceof TileEntityChest teChest) {
             final Block block = world.getBlock(x, y, z);
-            final TileEntityChest teChest = (TileEntityChest) te;
             IInventory inventory = teChest;
 
             if (world.getBlock(x, y, z + 1) == block) inventory = new InventoryLargeChest(
@@ -241,9 +240,8 @@ public class ServerEventHandler {
             final IInventory patterns = ((TileInterface) te).getInventoryByName("patterns");
             final IInventory wrapped = getCachedPatternsWrapper(world, ((TileInterface) te).getCustomName(), patterns);
             processInventoryData(coord.hashCode(), player, wrapped);
-        } else if (HoloInventory.isAE2Loaded && te instanceof IPartHost) {
+        } else if (HoloInventory.isAE2Loaded && te instanceof IPartHost host) {
             final Vec3 position = mo.hitVec.addVector(-mo.blockX, -mo.blockY, -mo.blockZ);
-            final IPartHost host = (IPartHost) te;
             final SelectedPart sp = host.selectPart(position);
             if (sp != null && sp.part instanceof PartInterface) {
                 final IInventory patterns = ((PartInterface) sp.part).getInventoryByName("patterns");
@@ -259,8 +257,7 @@ public class ServerEventHandler {
             processInventoryData(coord.hashCode(), player, (IInventory) te);
         } else if (te instanceof TileEntityEnderChest) {
             processInventoryData(coord.hashCode(), player, player.getInventoryEnderChest());
-        } else if (te instanceof BlockJukebox.TileEntityJukebox) {
-            BlockJukebox.TileEntityJukebox realTe = ((BlockJukebox.TileEntityJukebox) te);
+        } else if (te instanceof BlockJukebox.TileEntityJukebox realTe) {
             processInventoryData(coord.hashCode(), player, JUKEBOX_NAME, realTe.func_145856_a());
         }
     }

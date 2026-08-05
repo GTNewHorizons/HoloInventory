@@ -249,7 +249,7 @@ public class Renderer {
      */
     private void renderMerchant(NamedData<MerchantRecipeList> namedData) {
         coord.y += 2; // Adjust for villager height
-        if (namedData.data.size() == 0) return;
+        if (namedData.data.isEmpty()) return;
         final double distance = distance();
         if (distance < 1) return;
 
@@ -346,28 +346,19 @@ public class Renderer {
 
         int wantedSize = list.size();
 
-        switch (Config.mode) {
+        wantedSize = switch (Config.mode) {
             // Most abundant, 1 item
-            case 2:
-                wantedSize = 1;
-                break;
+            case 2 -> 1;
             // Most abundant, 3 items
-            case 3:
-                wantedSize = 3;
-                break;
+            case 3 -> 3;
             // Most abundant, 5 items
-            case 4:
-                wantedSize = 5;
-                break;
+            case 4 -> 5;
             // Most abundant, 7 items
-            case 5:
-                wantedSize = 7;
-                break;
+            case 5 -> 7;
             // Most abundant, 9 items
-            case 6:
-                wantedSize = 9;
-                break;
-        }
+            case 6 -> 9;
+            default -> wantedSize;
+        };
 
         if (Config.mode != 0) {
             list.sort(BY_STACK_SIZE_DESC);
