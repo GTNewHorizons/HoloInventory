@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Queue;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -78,6 +77,7 @@ public class ServerEventHandler {
     public final Object2ObjectLinkedOpenHashMap<Coord, InventoryData> mapBlockToInv = new Object2ObjectLinkedOpenHashMap<>();
     public final Object2ObjectLinkedOpenHashMap<Coord, FluidHandlerData> mapBlockToFluidHandler = new Object2ObjectLinkedOpenHashMap<>();
     private final Queue<Runnable> pendingTasks = new ConcurrentLinkedQueue<>();
+    private boolean loggedTickError;
 
     private static <V> void putBounded(Object2ObjectLinkedOpenHashMap<Coord, V> map, Coord key, V value) {
         map.putAndMoveToLast(key, value);
@@ -191,12 +191,16 @@ public class ServerEventHandler {
             final MovingObjectPosition mo = Helper.getPlayerLookingSpot(player);
             if (mo == null) return;
 
-            if (Objects.requireNonNull(mo.typeOfHit) == MovingObjectPosition.MovingObjectType.BLOCK) {
+            if (mo.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
                 handleLookedAtBlock(world, player, mo);
             }
         } catch (Exception e) {
-            HoloInventory.getLogger().warn("Some error while sending over inventory, no hologram for you :(");
-            HoloInventory.getLogger().warn("Please make an issue on github if this happens.", e);
+            if (!loggedTickError) {
+                loggedTickError = true;
+                HoloInventory.getLogger().warn(
+                        "Some error while sending over inventory, no hologram for you :( Further errors are not logged.",
+                        e);
+            }
         }
     }
 
