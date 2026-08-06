@@ -229,35 +229,45 @@ public class GroupRenderer {
 
     private void doRenderEntityItem(int column, int row, String stackSizeText) {
         GL11.glPushMatrix();
-        GL11.glTranslatef(width - ((column + 0.2f) * scale * spacing), height - ((row + 0.05f) * scale * spacing), 0f);
-        GL11.glTranslatef(0, offset, 0);
-        GL11.glScalef(scale, scale, scale);
-        RenderItem.renderInFrame = true;
-        GL11.glRotatef(Config.rotateItems ? time : 180f, 0.0F, 1.0F, 0.0F);
-        final boolean oldFancyGraphics;
-        if (angelicaFancyItemsSetter != null) {
-            try {
-                oldFancyGraphics = (boolean) angelicaFancyItemsGetter.invokeExact();
-                angelicaFancyItemsSetter.invokeExact(true);
-            } catch (Throwable t) {
-                throw Throwables.propagate(t);
+        final boolean oldRenderInFrame = RenderItem.renderInFrame;
+        try {
+            GL11.glTranslatef(
+                    width - ((column + 0.2f) * scale * spacing),
+                    height - ((row + 0.05f) * scale * spacing),
+                    0f);
+            GL11.glTranslatef(0, offset, 0);
+            GL11.glScalef(scale, scale, scale);
+            RenderItem.renderInFrame = true;
+            GL11.glRotatef(Config.rotateItems ? time : 180f, 0.0F, 1.0F, 0.0F);
+            final boolean oldFancyGraphics;
+            if (angelicaFancyItemsSetter != null) {
+                try {
+                    oldFancyGraphics = (boolean) angelicaFancyItemsGetter.invokeExact();
+                    angelicaFancyItemsSetter.invokeExact(true);
+                } catch (Throwable t) {
+                    throw Throwables.propagate(t);
+                }
+            } else {
+                oldFancyGraphics = Minecraft.getMinecraft().gameSettings.fancyGraphics;
+                Minecraft.getMinecraft().gameSettings.fancyGraphics = true;
             }
-        } else {
-            oldFancyGraphics = Minecraft.getMinecraft().gameSettings.fancyGraphics;
-            Minecraft.getMinecraft().gameSettings.fancyGraphics = true;
-        }
-        ClientHandler.RENDER_ITEM.doRender(fakeEntityItem, 0, 0, 0, 0, 0);
-        if (angelicaFancyItemsSetter != null) {
             try {
-                angelicaFancyItemsSetter.invokeExact((boolean) oldFancyGraphics);
-            } catch (Throwable t) {
-                throw Throwables.propagate(t);
+                ClientHandler.RENDER_ITEM.doRender(fakeEntityItem, 0, 0, 0, 0, 0);
+            } finally {
+                if (angelicaFancyItemsSetter != null) {
+                    try {
+                        angelicaFancyItemsSetter.invokeExact((boolean) oldFancyGraphics);
+                    } catch (Throwable t) {
+                        throw Throwables.propagate(t);
+                    }
+                } else {
+                    Minecraft.getMinecraft().gameSettings.fancyGraphics = oldFancyGraphics;
+                }
             }
-        } else {
-            Minecraft.getMinecraft().gameSettings.fancyGraphics = oldFancyGraphics;
+        } finally {
+            RenderItem.renderInFrame = oldRenderInFrame;
+            GL11.glPopMatrix();
         }
-        RenderItem.renderInFrame = false;
-        GL11.glPopMatrix();
         if (renderText && stackSizeText != null) {
             GL11.glPushMatrix();
             GL11.glDisable(GL11.GL_LIGHTING);
