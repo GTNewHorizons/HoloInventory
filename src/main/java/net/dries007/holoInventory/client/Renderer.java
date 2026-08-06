@@ -64,11 +64,7 @@ public class Renderer {
 
     private static final int MAX_CACHED = 1024;
 
-    /**
-     * Insertion ordered, so evicting the oldest is safe, the server resends the data for whatever is being looked at.
-     * Nothing here may use fastutil's getAndMoveTo* methods: a read must not reorder the map, these are read from the
-     * render thread while the network thread fills them.
-     */
+    /** Insertion-ordered cache with a bounded size. */
     private static class BoundedCache<V> extends Int2ObjectLinkedOpenHashMap<V> {
 
         @Override
@@ -100,6 +96,7 @@ public class Renderer {
         }
     }
 
+    /** The server periodically resends evicted block data while it is being looked at. */
     public static final Object2ObjectMap<Coord, NamedData<ItemStack[]>> tileInventoryMap = new BoundedObjectCache<>();
     public static final Object2ObjectMap<Coord, List<FluidTankInfo>> tileFluidHandlerMap = new BoundedObjectCache<>();
     public static final Int2ObjectMap<NamedData<ItemStack[]>> entityMap = new BoundedCache<>();

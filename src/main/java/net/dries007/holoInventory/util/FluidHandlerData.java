@@ -5,6 +5,7 @@ import static net.dries007.holoInventory.util.NBTKeys.*;
 import java.lang.ref.WeakReference;
 import java.util.WeakHashMap;
 
+import net.dries007.holoInventory.Config;
 import net.dries007.holoInventory.HoloInventory;
 import net.dries007.holoInventory.network.BlockFluidHandlerMessage;
 import net.minecraft.entity.player.EntityPlayer;
@@ -20,6 +21,7 @@ public class FluidHandlerData {
     public final Coord coord;
     public WeakReference<IFluidHandler> te;
     public final WeakHashMap<EntityPlayer, NBTTagCompound> playerSet = new WeakHashMap<>();
+    private final WeakHashMap<EntityPlayer, Long> lastSentTicks = new WeakHashMap<>();
     private long snapshotTick = Long.MIN_VALUE;
     private NBTTagCompound snapshot;
 
@@ -41,8 +43,11 @@ public class FluidHandlerData {
             snapshot.setTag(NBT_KEY_TANK, encodeFluidTankInfo(fluidHandler));
         }
 
-        if (!snapshot.equals(playerSet.get(player))) {
+        final Long lastSentTick = lastSentTicks.get(player);
+        if (!snapshot.equals(playerSet.get(player)) || lastSentTick == null
+                || tick - lastSentTick >= 20L * Math.max(1, Config.syncFreq)) {
             playerSet.put(player, snapshot);
+            lastSentTicks.put(player, tick);
             HoloInventory.getSnw().sendTo(new BlockFluidHandlerMessage(snapshot), player);
         }
     }
