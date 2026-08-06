@@ -359,6 +359,7 @@ public class ServerEventHandler {
     public void clearInventoryData() {
         mapBlockToInv.clear();
         mapBlockToFluidHandler.clear();
+        pendingTasks.clear();
     }
 
     public void resetPlayer(EntityPlayer player) {
