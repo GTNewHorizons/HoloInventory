@@ -85,8 +85,8 @@ public class EntityRequestMessage implements IMessage {
                     || !(entity instanceof IInventory || entity instanceof IMerchant))
                 return;
 
-            String type = entity.getClass().getCanonicalName();
-            if (type == null) type = entity.getClass().getName();
+            // raw, so that it matches what the ban list is filled with
+            final String type = entity.getClass().getCanonicalName();
             if (Config.bannedEntities.contains(type)) {
                 final NBTTagCompound root = new NBTTagCompound();
                 root.setByte(NBT_KEY_TYPE, (byte) 1);
@@ -99,14 +99,14 @@ public class EntityRequestMessage implements IMessage {
                 final NBTTagCompound root = new NBTTagCompound();
                 root.setInteger(NBT_KEY_ID, message.entityId);
                 root.setString(NBT_KEY_NAME, Strings.nullToEmpty(inventory.getInventoryName()));
-                root.setString(NBT_KEY_CLASS, type);
+                if (type != null) root.setString(NBT_KEY_CLASS, type);
                 root.setTag(NBT_KEY_LIST, InventoryDecoderRegistry.toNBT(inventory));
                 HoloInventory.getSnw().sendTo(new EntityInventoryMessage(root), player);
             } else {
                 final NBTTagCompound tag = ((IMerchant) entity).getRecipes(player).getRecipiesAsTags();
                 tag.setInteger(NBT_KEY_ID, message.entityId);
                 tag.setString(NBT_KEY_NAME, entity.getCommandSenderName());
-                tag.setString(NBT_KEY_CLASS, type);
+                if (type != null) tag.setString(NBT_KEY_CLASS, type);
                 HoloInventory.getSnw().sendTo(new MerchantInventoryMessage(tag), player);
             }
         }
