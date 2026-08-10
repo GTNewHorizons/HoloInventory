@@ -72,8 +72,15 @@ public class InventoryData {
         }
     }
 
+    /**
+     * An ender chest hands out a different {@link IInventory} per player, the snapshot taken for the player who ticked
+     * first must not be reused for the next one.
+     */
     public void update(IInventory inventory) {
-        te = new WeakReference<>(inventory);
+        if (te.get() != inventory) {
+            snapshot = null;
+            te = new WeakReference<>(inventory);
+        }
     }
 
     public String getType() {
