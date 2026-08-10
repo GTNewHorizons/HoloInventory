@@ -249,12 +249,27 @@ public class ServerEventHandler {
     private void handleLookedAtBlock(WorldServer world, EntityPlayerMP player, MovingObjectPosition mo) {
         final Coord coord = new Coord(world.provider.dimensionId, mo);
         final TileEntity te = world.getTileEntity((int) coord.x, (int) coord.y, (int) coord.z);
-        if (te == null) return;
+        // the client drops its own copy in these cases, so ours has to go too or it would suppress the next send
+        if (te == null) {
+            removeInventoryData(coord, player);
+            forgetFluidHandlerData(coord, player);
+            return;
+        }
 
         handleInventoryBlock(world, player, mo, coord, te);
 
         if (te instanceof IFluidHandler) {
             processFluidHandlerData(coord, player, (IFluidHandler) te);
+        } else {
+            forgetFluidHandlerData(coord, player);
+        }
+    }
+
+    private void forgetFluidHandlerData(Coord coord, EntityPlayer player) {
+        final FluidHandlerData data = mapBlockToFluidHandler.get(coord);
+        if (data != null) {
+            data.playerSet.remove(player);
+            if (data.playerSet.isEmpty()) mapBlockToFluidHandler.remove(coord);
         }
     }
 

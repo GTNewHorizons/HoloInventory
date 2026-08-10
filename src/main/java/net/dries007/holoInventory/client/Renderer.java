@@ -96,7 +96,6 @@ public class Renderer {
         }
     }
 
-    /** The server periodically resends evicted block data while it is being looked at. */
     public static final Object2ObjectMap<Coord, NamedData<ItemStack[]>> tileInventoryMap = new BoundedObjectCache<>();
     public static final Object2ObjectMap<Coord, List<FluidTankInfo>> tileFluidHandlerMap = new BoundedObjectCache<>();
     public static final Int2ObjectMap<NamedData<ItemStack[]>> entityMap = new BoundedCache<>();

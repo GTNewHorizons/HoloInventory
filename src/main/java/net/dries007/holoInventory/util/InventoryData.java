@@ -19,7 +19,6 @@ import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_NAME;
 import java.lang.ref.WeakReference;
 import java.util.WeakHashMap;
 
-import net.dries007.holoInventory.Config;
 import net.dries007.holoInventory.HoloInventory;
 import net.dries007.holoInventory.compat.InventoryDecoderRegistry;
 import net.dries007.holoInventory.network.BlockInventoryMessage;
@@ -35,7 +34,6 @@ public class InventoryData {
     public final Coord coord;
     public WeakReference<IInventory> te;
     public final WeakHashMap<EntityPlayer, NBTTagCompound> playerSet = new WeakHashMap<>();
-    private final WeakHashMap<EntityPlayer, Long> lastSentTicks = new WeakHashMap<>();
     private String name;
     /** Class of the tile entity, not of the inventory it was unwrapped into. */
     private final String type;
@@ -63,11 +61,8 @@ public class InventoryData {
             snapshot.setTag(NBT_KEY_LIST, InventoryDecoderRegistry.toNBT(ste));
         }
 
-        final Long lastSentTick = lastSentTicks.get(player);
-        if (!snapshot.equals(playerSet.get(player)) || lastSentTick == null
-                || tick - lastSentTick >= 20L * Math.max(1, Config.syncFreq)) {
+        if (!snapshot.equals(playerSet.get(player))) {
             playerSet.put(player, snapshot);
-            lastSentTicks.put(player, tick);
             HoloInventory.getSnw().sendTo(new BlockInventoryMessage(snapshot), player);
         }
     }
