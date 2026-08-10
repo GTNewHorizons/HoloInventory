@@ -3,20 +3,13 @@ package net.dries007.holoInventory.client;
 import net.dries007.holoInventory.HoloInventory;
 import net.minecraft.client.Minecraft;
 
-/**
- * Message handlers run on the netty event loop, so every write to the caches in {@link Renderer} has to be handed over
- * to the client thread first.
- */
 public final class ClientTasks {
 
     private static boolean loggedTaskError = false;
 
     private ClientTasks() {}
 
-    /**
-     * {@link Minecraft#func_152344_a} parks a throw in a future that nobody ever reads, so a task failing on the client
-     * thread would go by unnoticed. Log it here instead. The stack trace points at the handler that scheduled it.
-     */
+    /** {@link Minecraft#func_152344_a} parks a throw in a future nobody reads, so failures have to be logged here. */
     public static void schedule(Runnable task) {
         Minecraft.getMinecraft().func_152344_a(() -> {
             try {

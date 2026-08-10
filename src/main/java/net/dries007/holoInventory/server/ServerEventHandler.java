@@ -16,6 +16,7 @@ package net.dries007.holoInventory.server;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_TYPE;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import net.dries007.holoInventory.Config;
 import net.dries007.holoInventory.HoloInventory;
@@ -72,13 +74,18 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 public class ServerEventHandler {
 
     private static final int MAX_CACHED = 1024;
+    private static final int MAX_PENDING_TASKS_PER_PLAYER = 32;
 
     public final List<String> banUsers = new ArrayList<>();
     public final HashMap<String, String> overrideUsers = new HashMap<>();
     public final Object2ObjectLinkedOpenHashMap<Coord, InventoryData> mapBlockToInv = new Object2ObjectLinkedOpenHashMap<>();
     public final Object2ObjectLinkedOpenHashMap<Coord, FluidHandlerData> mapBlockToFluidHandler = new Object2ObjectLinkedOpenHashMap<>();
     private final Queue<Runnable> pendingTasks = new ConcurrentLinkedQueue<>();
+    /** Written from netty threads, unlike the other per player state. */
+    private final Map<EntityPlayerMP, AtomicInteger> pendingTaskCount = Collections
+            .synchronizedMap(new WeakHashMap<>());
     private boolean loggedTickError;
+    private volatile boolean loggedDroppedTask;
 
     private static <V> void putBounded(Object2ObjectLinkedOpenHashMap<Coord, V> map, Coord key, V value) {
         map.putAndMoveToLast(key, value);
@@ -219,8 +226,24 @@ public class ServerEventHandler {
         }
     }
 
-    public void schedule(Runnable task) {
-        pendingTasks.add(task);
+    /** Dropping a request is harmless, the client asks again once its own throttle expires. */
+    public void schedule(EntityPlayerMP player, Runnable task) {
+        final AtomicInteger pending = pendingTaskCount.computeIfAbsent(player, p -> new AtomicInteger());
+        if (pending.get() >= MAX_PENDING_TASKS_PER_PLAYER) {
+            if (!loggedDroppedTask) {
+                loggedDroppedTask = true;
+                HoloInventory.getLogger().warn(
+                        "Dropping hologram requests from {}, {} are already queued. Further drops are not logged.",
+                        player.getCommandSenderName(),
+                        MAX_PENDING_TASKS_PER_PLAYER);
+            }
+            return;
+        }
+        pending.incrementAndGet();
+        pendingTasks.add(() -> {
+            pending.decrementAndGet();
+            task.run();
+        });
     }
 
     private void handleLookedAtBlock(WorldServer world, EntityPlayerMP player, MovingObjectPosition mo) {
@@ -342,11 +365,6 @@ public class ServerEventHandler {
         return new FakeInventory(name, outputs);
     }
 
-    /**
-     * @param type class of the tile entity, which is what decides whether the block turned into something else. The
-     *             inventory can be a wrapper around it ({@link InventoryLargeChest}, {@link FakeInventory}, the
-     *             player's ender chest) and its class says nothing about that.
-     */
     private void processInventoryData(Coord coord, EntityPlayerMP player, String type, IInventory inventory) {
         InventoryData inventoryData = mapBlockToInv.get(coord);
         if (inventoryData == null) {
@@ -362,6 +380,8 @@ public class ServerEventHandler {
         mapBlockToInv.clear();
         mapBlockToFluidHandler.clear();
         pendingTasks.clear();
+        // the dropped tasks are the ones that would have handed these budgets back
+        pendingTaskCount.clear();
     }
 
     public void resetPlayer(EntityPlayer player) {

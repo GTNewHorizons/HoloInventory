@@ -59,7 +59,7 @@ public class EntityRequestMessage implements IMessage {
             if (!ctx.side.isServer()) return null;
 
             final EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-            ServerHandler.serverEventHandler.schedule(() -> handle(message, player));
+            ServerHandler.serverEventHandler.schedule(player, () -> handle(message, player));
             return null;
         }
 
