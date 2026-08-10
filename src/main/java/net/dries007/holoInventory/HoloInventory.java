@@ -49,7 +49,7 @@ import cpw.mods.fml.relauncher.Side;
         modid = HoloInventory.MODID,
         name = "Holo Inventory",
         version = HoloInventory.VERSION,
-        acceptableRemoteVersions = "[" + HoloInventory.VERSION + "]",
+        acceptableRemoteVersions = "*",
         acceptedMinecraftVersions = "[1.7.10]",
         dependencies = "after:Baubles|Expanded;after:TConstruct;after:TwilightForest;required-after:gtnhlib@[0.9.50,)")
 public class HoloInventory {
