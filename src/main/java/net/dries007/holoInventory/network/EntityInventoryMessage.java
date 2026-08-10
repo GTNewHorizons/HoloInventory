@@ -6,9 +6,9 @@ import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_ID;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_LIST;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_NAME;
 
+import net.dries007.holoInventory.client.ClientTasks;
 import net.dries007.holoInventory.client.Renderer;
 import net.dries007.holoInventory.util.NamedData;
-import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -61,7 +61,7 @@ public class EntityInventoryMessage implements IMessage {
                 final NamedData<ItemStack[]> data = message.data.hasKey(NBT_KEY_CLASS)
                         ? new NamedData<>(name, message.data.getString(NBT_KEY_CLASS), itemStacks)
                         : new NamedData<>(name, itemStacks);
-                Minecraft.getMinecraft().func_152344_a(() -> Renderer.entityMap.put(id, data));
+                ClientTasks.schedule(() -> Renderer.entityMap.put(id, data));
             }
 
             return null;

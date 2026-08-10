@@ -6,9 +6,9 @@ import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_TANK;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.dries007.holoInventory.client.ClientTasks;
 import net.dries007.holoInventory.client.Renderer;
 import net.dries007.holoInventory.util.Coord;
-import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.common.util.Constants;
@@ -60,7 +60,7 @@ public class BlockFluidHandlerMessage implements IMessage {
                 }
             }
             final Coord coord = new Coord(message.data);
-            Minecraft.getMinecraft().func_152344_a(() -> Renderer.tileFluidHandlerMap.put(coord, tankInfos));
+            ClientTasks.schedule(() -> Renderer.tileFluidHandlerMap.put(coord, tankInfos));
 
             return null;
         }

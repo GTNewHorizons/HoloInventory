@@ -4,9 +4,9 @@ import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_CLASS;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_ID;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_NAME;
 
+import net.dries007.holoInventory.client.ClientTasks;
 import net.dries007.holoInventory.client.Renderer;
 import net.dries007.holoInventory.util.NamedData;
-import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.village.MerchantRecipeList;
 
@@ -53,7 +53,7 @@ public class MerchantInventoryMessage implements IMessage {
                 final NamedData<MerchantRecipeList> data = message.data.hasKey(NBT_KEY_CLASS)
                         ? new NamedData<>(name, message.data.getString(NBT_KEY_CLASS), list)
                         : new NamedData<>(name, list);
-                Minecraft.getMinecraft().func_152344_a(() -> Renderer.merchantMap.put(id, data));
+                ClientTasks.schedule(() -> Renderer.merchantMap.put(id, data));
             }
 
             return null;

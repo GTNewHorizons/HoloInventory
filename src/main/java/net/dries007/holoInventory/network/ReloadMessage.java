@@ -1,7 +1,7 @@
 package net.dries007.holoInventory.network;
 
 import net.dries007.holoInventory.HoloInventory;
-import net.minecraft.client.Minecraft;
+import net.dries007.holoInventory.client.ClientTasks;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -24,7 +24,7 @@ public class ReloadMessage implements IMessage {
         @Override
         public IMessage onMessage(ReloadMessage message, MessageContext ctx) {
             if (ctx.side.isClient()) {
-                Minecraft.getMinecraft().func_152344_a(() -> HoloInventory.getConfig().reload());
+                ClientTasks.schedule(() -> HoloInventory.getConfig().reload());
             }
 
             return null;

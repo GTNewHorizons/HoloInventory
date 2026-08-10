@@ -9,10 +9,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.dries007.holoInventory.Config;
+import net.dries007.holoInventory.client.ClientTasks;
 import net.dries007.holoInventory.client.Renderer;
 import net.dries007.holoInventory.util.Coord;
 import net.dries007.holoInventory.util.NamedData;
-import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -138,7 +138,7 @@ public class BlockInventoryMessage implements IMessage {
                 data = new NamedData<>(name, itemStacks);
             }
 
-            Minecraft.getMinecraft().func_152344_a(() -> Renderer.tileInventoryMap.put(coord, data));
+            ClientTasks.schedule(() -> Renderer.tileInventoryMap.put(coord, data));
             return null;
         }
     }
