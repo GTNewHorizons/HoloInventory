@@ -15,6 +15,7 @@ import net.minecraft.entity.IMerchant;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.world.WorldServer;
 
 import com.google.common.base.Strings;
@@ -63,6 +64,15 @@ public class EntityRequestMessage implements IMessage {
             return null;
         }
 
+        /** The client ray traces the entity's box, so a wide entity can be in reach while its centre is not. */
+        private static double distanceSqToBox(EntityPlayerMP player, AxisAlignedBB box) {
+            final double eyeY = player.posY + player.getEyeHeight();
+            final double dx = Math.max(Math.max(box.minX - player.posX, player.posX - box.maxX), 0);
+            final double dy = Math.max(Math.max(box.minY - eyeY, eyeY - box.maxY), 0);
+            final double dz = Math.max(Math.max(box.minZ - player.posZ, player.posZ - box.maxZ), 0);
+            return dx * dx + dy * dy + dz * dz;
+        }
+
         private static void handle(EntityRequestMessage message, EntityPlayerMP player) {
             if (player.isDead || player.dimension != message.dim) return;
 
@@ -71,7 +81,7 @@ public class EntityRequestMessage implements IMessage {
             final Entity entity = world.getEntityByID(message.entityId);
             final double reach = player.theItemInWorldManager.getBlockReachDistance() + 1;
             if (entity == null || entity.isDead
-                    || player.getDistanceSqToEntity(entity) > reach * reach
+                    || distanceSqToBox(player, entity.boundingBox) > reach * reach
                     || !(entity instanceof IInventory || entity instanceof IMerchant))
                 return;
 
