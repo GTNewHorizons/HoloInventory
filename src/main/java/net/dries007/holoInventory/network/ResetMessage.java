@@ -1,5 +1,6 @@
 package net.dries007.holoInventory.network;
 
+import net.dries007.holoInventory.client.ClientTasks;
 import net.dries007.holoInventory.client.Renderer;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -23,10 +24,13 @@ public class ResetMessage implements IMessage {
         @Override
         public IMessage onMessage(ResetMessage message, MessageContext ctx) {
             if (ctx.side.isClient()) {
-                Renderer.entityMap.clear();
-                Renderer.requestMap.clear();
-                Renderer.tileInventoryMap.clear();
-                Renderer.merchantMap.clear();
+                ClientTasks.schedule(() -> {
+                    Renderer.entityMap.clear();
+                    Renderer.requestMap.clear();
+                    Renderer.tileInventoryMap.clear();
+                    Renderer.tileFluidHandlerMap.clear();
+                    Renderer.merchantMap.clear();
+                });
             }
             return null;
         }

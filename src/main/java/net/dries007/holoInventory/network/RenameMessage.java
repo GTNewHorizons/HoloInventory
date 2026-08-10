@@ -2,6 +2,7 @@ package net.dries007.holoInventory.network;
 
 import net.dries007.holoInventory.Config;
 import net.dries007.holoInventory.HoloInventory;
+import net.dries007.holoInventory.client.ClientTasks;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -41,8 +42,10 @@ public class RenameMessage implements IMessage {
         @Override
         public IMessage onMessage(RenameMessage message, MessageContext ctx) {
             if (ctx.side.isClient()) {
-                Config.nameOverrides.put(message.name, message.override);
-                HoloInventory.getConfig().overrideNameThings();
+                ClientTasks.schedule(() -> {
+                    Config.nameOverrides.put(message.name, message.override);
+                    HoloInventory.getConfig().overrideNameThings();
+                });
             }
             return null;
         }

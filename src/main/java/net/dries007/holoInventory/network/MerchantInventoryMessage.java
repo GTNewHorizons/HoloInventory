@@ -4,6 +4,7 @@ import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_CLASS;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_ID;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_NAME;
 
+import net.dries007.holoInventory.client.ClientTasks;
 import net.dries007.holoInventory.client.Renderer;
 import net.dries007.holoInventory.util.NamedData;
 import net.minecraft.nbt.NBTTagCompound;
@@ -47,18 +48,12 @@ public class MerchantInventoryMessage implements IMessage {
                 MerchantRecipeList list = new MerchantRecipeList();
                 list.readRecipiesFromTags(message.data);
 
-                if (message.data.hasKey(NBT_KEY_CLASS)) {
-                    Renderer.merchantMap.put(
-                            message.data.getInteger(NBT_KEY_ID),
-                            new NamedData<>(
-                                    message.data.getString(NBT_KEY_NAME),
-                                    message.data.getString(NBT_KEY_CLASS),
-                                    list));
-                } else {
-                    Renderer.merchantMap.put(
-                            message.data.getInteger(NBT_KEY_ID),
-                            new NamedData<>(message.data.getString(NBT_KEY_NAME), list));
-                }
+                final int id = message.data.getInteger(NBT_KEY_ID);
+                final String name = message.data.getString(NBT_KEY_NAME);
+                final NamedData<MerchantRecipeList> data = message.data.hasKey(NBT_KEY_CLASS)
+                        ? new NamedData<>(name, message.data.getString(NBT_KEY_CLASS), list)
+                        : new NamedData<>(name, list);
+                ClientTasks.schedule(() -> Renderer.merchantMap.put(id, data));
             }
 
             return null;

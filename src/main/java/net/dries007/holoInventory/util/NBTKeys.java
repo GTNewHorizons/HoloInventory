@@ -10,4 +10,8 @@ public class NBTKeys {
     public static final String NBT_KEY_TYPE = "type";
     public static final String NBT_KEY_TANK = "tank";
     public static final String NBT_KEY_CAPACITY = "capacity";
+    public static final String NBT_KEY_DIM = "dim";
+    public static final String NBT_KEY_X = "x";
+    public static final String NBT_KEY_Y = "y";
+    public static final String NBT_KEY_Z = "z";
 }

@@ -14,12 +14,9 @@
 package net.dries007.holoInventory.client;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -56,16 +53,56 @@ import codechicken.nei.api.ItemFilter;
 import cpw.mods.fml.client.FMLClientHandler;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import it.unimi.dsi.fastutil.ints.Int2LongLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2LongMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 
 public class Renderer {
 
-    public static final HashMap<Integer, NamedData<ItemStack[]>> tileInventoryMap = new HashMap<>();
-    public static final HashMap<Integer, List<FluidTankInfo>> tileFluidHandlerMap = new HashMap<>();
-    public static final HashMap<Integer, NamedData<ItemStack[]>> entityMap = new HashMap<>();
-    public static final HashMap<Integer, NamedData<MerchantRecipeList>> merchantMap = new HashMap<>();
-    public static final HashMap<Integer, Long> requestMap = new HashMap<>();
+    private static final int MAX_CACHED = 1024;
 
-    private Coord coord;
+    /** Insertion-ordered cache with a bounded size. */
+    private static class BoundedCache<V> extends Int2ObjectLinkedOpenHashMap<V> {
+
+        @Override
+        public V put(int key, V value) {
+            final V old = super.put(key, value);
+            if (size() > MAX_CACHED) removeFirst();
+            return old;
+        }
+    }
+
+    private static class BoundedObjectCache<K, V> extends Object2ObjectLinkedOpenHashMap<K, V> {
+
+        @Override
+        public V put(K key, V value) {
+            final V old = super.put(key, value);
+            if (size() > MAX_CACHED) removeFirst();
+            return old;
+        }
+    }
+
+    /** @see BoundedCache */
+    private static class BoundedLongCache extends Int2LongLinkedOpenHashMap {
+
+        @Override
+        public long put(int key, long value) {
+            final long old = super.put(key, value);
+            if (size() > MAX_CACHED) removeFirstLong();
+            return old;
+        }
+    }
+
+    public static final Object2ObjectMap<Coord, NamedData<ItemStack[]>> tileInventoryMap = new BoundedObjectCache<>();
+    public static final Object2ObjectMap<Coord, List<FluidTankInfo>> tileFluidHandlerMap = new BoundedObjectCache<>();
+    public static final Int2ObjectMap<NamedData<ItemStack[]>> entityMap = new BoundedCache<>();
+    public static final Int2ObjectMap<NamedData<MerchantRecipeList>> merchantMap = new BoundedCache<>();
+    public static final Int2LongMap requestMap = new BoundedLongCache();
+
+    private double hologramX, hologramY, hologramZ;
     public boolean enabled = true;
     // used in Angelica to control when this renderer should be active
     public boolean angelicaOverride = false;
@@ -76,19 +113,26 @@ public class Renderer {
 
     public static final Renderer INSTANCE = new Renderer();
 
+    private static final Comparator<ItemStack> BY_STACK_SIZE_DESC = (a, b) -> Integer.compare(b.stackSize, a.stackSize);
+
     private final GroupRenderer itemGroupRenderer = new GroupRenderer();
     private final GroupRenderer fluidGroupRenderer = new GroupRenderer();
 
     ItemFilter cachedFilter = null;
     String cachedSearch = "";
     private boolean fancyGraphics;
+    private final ArrayList<ItemStack> filteredItems = new ArrayList<>();
+    private boolean loggedRenderError = false;
+    private boolean loggedFilterError = false;
+    private int glassesCheckedOnTick = -1;
+    private boolean glassesCheckResult;
 
     @SubscribeEvent
     public void optifineIsAnnoying(RenderWorldLastEvent event) {
         fancyGraphics = Minecraft.getMinecraft().gameSettings.fancyGraphics;
     }
 
-    // change to RenderGameOverlayEvent so shaders don't effect the render.
+    // change to RenderGameOverlayEvent so shaders don't affect the render.
     @SubscribeEvent
     public void renderEvent(RenderGameOverlayEvent.Post event) {
         if (!enabled || event.type != ElementType.HELMET || angelicaOverride) {
@@ -96,14 +140,29 @@ public class Renderer {
         }
         final EntityPlayer player = Minecraft.getMinecraft().thePlayer;
         try {
-            if (!Config.requireGlasses || HoloGlasses.shouldRender(player)) {
+            if (!Config.requireGlasses || shouldRenderFor(player)) {
                 doEvent(event.partialTicks);
             }
         } catch (Exception e) {
-            HoloInventory.getLogger().warn("Some error while rendering the hologram :(");
-            HoloInventory.getLogger().warn("Please make an issue on github if this happens");
-            e.printStackTrace();
+            if (!loggedRenderError) {
+                loggedRenderError = true;
+                HoloInventory.getLogger().warn(
+                        "Some error while rendering the hologram :( Please make an issue on github if this happens. Further render errors are not logged.",
+                        e);
+            }
         }
+    }
+
+    /**
+     * Walks the armour slots plus the Baubles and Tinkers inventories, so it is far too much work to redo on every
+     * frame. Equipment can only change on a tick boundary anyway.
+     */
+    private boolean shouldRenderFor(EntityPlayer player) {
+        if (player.ticksExisted != glassesCheckedOnTick) {
+            glassesCheckedOnTick = player.ticksExisted;
+            glassesCheckResult = HoloGlasses.shouldRender(player);
+        }
+        return glassesCheckResult;
     }
 
     private void doEvent(float partialTicks) {
@@ -119,7 +178,10 @@ public class Renderer {
             Minecraft.getMinecraft().gameSettings.fancyGraphics = fancyGraphics;
         }
 
-        coord = new Coord(mc.theWorld.provider.dimensionId, mc.objectMouseOver);
+        final Coord coord = new Coord(mc.theWorld.provider.dimensionId, mc.objectMouseOver);
+        hologramX = coord.x;
+        hologramY = coord.y;
+        hologramZ = coord.z;
         itemGroupRenderer.reset();
         fluidGroupRenderer.reset();
         GroupRenderer.updateTime();
@@ -132,29 +194,29 @@ public class Renderer {
                     // Check for local ban
                     if (Config.bannedTiles.contains(clazz)) return;
 
-                    NamedData<ItemStack[]> invData = tileInventoryMap.get(coord.hashCode());
+                    NamedData<ItemStack[]> invData = tileInventoryMap.get(coord);
                     if (invData != null) {
                         if (invData.clazz != null && !invData.clazz.equals(clazz)) {
                             // Render only if we know the content
                             invData = null;
-                            tileInventoryMap.remove(coord.hashCode());
+                            tileInventoryMap.remove(coord);
                         }
                     }
 
-                    List<FluidTankInfo> fluidTankInfos = tileFluidHandlerMap.get(coord.hashCode());
+                    List<FluidTankInfo> fluidTankInfos = tileFluidHandlerMap.get(coord);
                     if (fluidTankInfos != null && !(te instanceof IFluidHandler)) {
                         // Render only if we know the content
                         fluidTankInfos = null;
-                        tileFluidHandlerMap.remove(coord.hashCode());
+                        tileFluidHandlerMap.remove(coord);
                     }
 
-                    coord.x += 0.5;
-                    coord.y += 0.5;
-                    coord.z += 0.5;
+                    hologramX += 0.5;
+                    hologramY += 0.5;
+                    hologramZ += 0.5;
                     setRenderPos(partialTicks);
                     renderHologram(invData, fluidTankInfos);
                 } else {
-                    tileInventoryMap.remove(coord.hashCode());
+                    tileInventoryMap.remove(coord);
                 }
                 break;
             case ENTITY:
@@ -197,8 +259,8 @@ public class Renderer {
      * @param namedData The things to render
      */
     private void renderMerchant(NamedData<MerchantRecipeList> namedData) {
-        coord.y += 2; // Adjust for villager height
-        if (namedData.data.size() == 0) return;
+        hologramY += 2; // Adjust for villager height
+        if (namedData.data.isEmpty()) return;
         final double distance = distance();
         if (distance < 1) return;
 
@@ -249,21 +311,31 @@ public class Renderer {
      */
     private List<ItemStack> filterByNEI(NamedData<ItemStack[]> namedData) {
         if (namedData == null || namedData.isInvalid()) return Collections.emptyList();
-        ItemStack[] items = namedData.data;
+        final ItemStack[] items = namedData.data;
+        filteredItems.clear();
         try {
             if (Config.hideItemsNotSelected && Loader.isModLoaded("NotEnoughItems")
                     && SearchField.searchInventories()) {
-                final String searchString = NEIClientConfig.getSearchExpression().toLowerCase();
+                final String searchString = NEIClientConfig.getSearchExpression();
                 if (!cachedSearch.equals(searchString) || cachedFilter == null) {
-                    cachedFilter = SearchField.getFilter(searchString);
+                    cachedFilter = SearchField.getFilter(searchString.toLowerCase());
                     cachedSearch = searchString;
                 }
-                return Arrays.stream(items).filter(s -> cachedFilter.matches(s)).collect(Collectors.toList());
+                for (ItemStack item : items) {
+                    if (cachedFilter.matches(item)) filteredItems.add(item);
+                }
+                return filteredItems;
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            if (!loggedFilterError) {
+                loggedFilterError = true;
+                HoloInventory.getLogger()
+                        .warn("Could not filter the hologram by the NEI search. Further errors are not logged.", ex);
+            }
+            filteredItems.clear();
         }
-        return Arrays.asList(items);
+        Collections.addAll(filteredItems, items);
+        return filteredItems;
     }
 
     private void renderHologram(NamedData<ItemStack[]> namedData) {
@@ -285,35 +357,26 @@ public class Renderer {
 
         int wantedSize = list.size();
 
-        switch (Config.mode) {
+        wantedSize = switch (Config.mode) {
             // Most abundant, 1 item
-            case 2:
-                wantedSize = 1;
-                break;
+            case 2 -> 1;
             // Most abundant, 3 items
-            case 3:
-                wantedSize = 3;
-                break;
+            case 3 -> 3;
             // Most abundant, 5 items
-            case 4:
-                wantedSize = 5;
-                break;
+            case 4 -> 5;
             // Most abundant, 7 items
-            case 5:
-                wantedSize = 7;
-                break;
+            case 5 -> 7;
             // Most abundant, 9 items
-            case 6:
-                wantedSize = 9;
-                break;
-        }
+            case 6 -> 9;
+            default -> wantedSize;
+        };
 
         if (Config.mode != 0) {
-            list.sort(Comparator.<ItemStack>comparingInt(s -> s.stackSize).reversed());
+            list.sort(BY_STACK_SIZE_DESC);
             if (list.size() > wantedSize) list = list.subList(0, wantedSize);
         }
 
-        if (Config.cycle != 0) {
+        if (Config.cycle > 0 && !list.isEmpty()) {
             int i = (int) ((Minecraft.getMinecraft().theWorld.getTotalWorldTime() / Config.cycle) % list.size());
             list = Collections.singletonList(list.get(i));
         }
@@ -329,7 +392,7 @@ public class Renderer {
      * Actually renders a regular hologram
      *
      * @param itemStacks The itemStacks that will be rendered
-     * @param distance   The distance the player is from the hologram, passed to avoid 2th calculation.
+     * @param distance   The distance the player is from the hologram, passed to avoid 2nd calculation.
      */
     private void doRenderHologram(@Nullable String name, @Nonnull List<ItemStack> itemStacks,
             @Nonnull List<FluidTankInfo> fluidTankInfos, double distance) {
@@ -446,7 +509,7 @@ public class Renderer {
      * @param depth Shift towards the player if negative
      */
     private void moveAndRotate(double depth) {
-        GL11.glTranslated(coord.x - renderPosX, coord.y - renderPosY, coord.z - renderPosZ);
+        GL11.glTranslated(hologramX - renderPosX, hologramY - renderPosY, hologramZ - renderPosZ);
         GL11.glRotatef(-RenderManager.instance.playerViewY, 0.0F, 0.5F, 0.0F);
         GL11.glRotatef(RenderManager.instance.playerViewX, 0.5F, 0.0F, 0.0F);
         GL11.glTranslated(0, 0, depth);
@@ -465,9 +528,9 @@ public class Renderer {
     private double distance() {
         // it appears optifine might mess up the renderViewEntity's posX and lasttickposx, so we have to do it
         // ourselves
-        double dx = coord.x - renderPosX;
-        double dy = coord.y - renderPosY;
-        double dz = coord.z - renderPosZ;
+        double dx = hologramX - renderPosX;
+        double dy = hologramY - renderPosY;
+        double dz = hologramZ - renderPosZ;
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 }

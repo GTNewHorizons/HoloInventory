@@ -13,7 +13,6 @@
 
 package net.dries007.holoInventory.util;
 
-import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_ID;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_LIST;
 import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_NAME;
 
@@ -32,18 +31,20 @@ import com.google.common.base.Strings;
 
 public class InventoryData {
 
-    public final int id;
+    public final Coord coord;
     public WeakReference<IInventory> te;
     public final WeakHashMap<EntityPlayer, NBTTagCompound> playerSet = new WeakHashMap<>();
-    public final String name;
-    public String type;
+    private String name;
+    /** Class of the tile entity, not of the inventory it was unwrapped into. */
+    private final String type;
+    private long snapshotTick = Long.MIN_VALUE;
+    private NBTTagCompound snapshot;
 
-    public InventoryData(IInventory te, int id) {
-        this.id = id;
+    public InventoryData(IInventory te, Coord coord, String type) {
+        this.coord = coord;
         this.te = new WeakReference<>(te);
         this.name = Strings.nullToEmpty(te.getInventoryName());
-        this.type = te.getClass().getCanonicalName();
-        if (type == null) type = te.getClass().getName();
+        this.type = type;
     }
 
     public void sendIfOld(EntityPlayerMP player) {
@@ -51,19 +52,28 @@ public class InventoryData {
         if (ste == null) {
             return;
         }
-        NBTTagCompound data = new NBTTagCompound();
-        data.setInteger(NBT_KEY_ID, this.id);
-        data.setString(NBT_KEY_NAME, name);
-        data.setTag(NBT_KEY_LIST, InventoryDecoderRegistry.toNBT(ste));
+        final long tick = player.worldObj.getTotalWorldTime();
+        if (snapshot == null || snapshotTick != tick) {
+            snapshotTick = tick;
+            snapshot = new NBTTagCompound();
+            coord.writeToNBT(snapshot);
+            snapshot.setString(NBT_KEY_NAME, name);
+            snapshot.setTag(NBT_KEY_LIST, InventoryDecoderRegistry.toNBT(ste));
+        }
 
-        if (!playerSet.containsKey(player) || !playerSet.get(player).equals(data)) {
-            playerSet.put(player, data);
-            HoloInventory.getSnw().sendTo(new BlockInventoryMessage(data), player);
+        if (!snapshot.equals(playerSet.get(player))) {
+            playerSet.put(player, snapshot);
+            HoloInventory.getSnw().sendTo(new BlockInventoryMessage(snapshot), player);
         }
     }
 
+    /** An ender chest hands out a different inventory per player, so the cached snapshot and name cannot be reused. */
     public void update(IInventory inventory) {
-        te = new WeakReference<>(inventory);
+        if (te.get() != inventory) {
+            snapshot = null;
+            te = new WeakReference<>(inventory);
+            name = Strings.nullToEmpty(inventory.getInventoryName());
+        }
     }
 
     public String getType() {

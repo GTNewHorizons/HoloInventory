@@ -28,6 +28,8 @@ import org.lwjgl.opengl.GL12;
 
 import com.google.common.base.Throwables;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import twilightforest.item.TFItems;
 
 /**
@@ -143,14 +145,20 @@ public class GroupRenderer {
     }
 
     public void renderItems(List<ItemStack> itemStacks) {
-        int column = 0, row = 0;
-        for (ItemStack stack : itemStacks) {
-            renderItem(stack, column, row);
-            column++;
-            if (column >= columns) {
-                column = 0;
-                row++;
+        // item lighting is identical for every item in the group, so set it up once instead of per item per frame
+        RenderHelper.enableStandardItemLighting();
+        try {
+            int column = 0, row = 0;
+            for (ItemStack stack : itemStacks) {
+                renderItem(stack, column, row);
+                column++;
+                if (column >= columns) {
+                    column = 0;
+                    row++;
+                }
             }
+        } finally {
+            RenderHelper.disableStandardItemLighting();
         }
     }
 
@@ -179,76 +187,90 @@ public class GroupRenderer {
             }
         }
 
-        if (renderStack == null) renderStack = itemStack.copy();
+        if (renderStack == null) renderStack = itemStack;
 
+        final String stackSizeText = (itemStack.getMaxStackSize() == 1 && itemStack.stackSize == 1) ? null
+                : doStackSizeCrap(itemStack.stackSize);
+        final int realStackSize = renderStack.stackSize;
         if (!Config.renderMultiple) {
             renderStack.stackSize = 1;
         }
         fakeEntityItem.setEntityItemStack(renderStack);
-        if (itemStack.hasEffect(0)) {
-            GL11.glDisable(GL11.GL_LIGHTING);
+        try {
+            doRenderEntityItem(column, row, stackSizeText);
+        } finally {
+            renderStack.stackSize = realStackSize;
         }
-        doRenderEntityItem(
-                column,
-                row,
-                (itemStack.getMaxStackSize() == 1 && itemStack.stackSize == 1) ? null
-                        : doStackSizeCrap(itemStack.stackSize));
     }
 
     public void renderFluids(List<FluidTankInfo> fluidTankInfos) {
-        int column = 0, row = 0;
-        for (FluidTankInfo tankInfo : fluidTankInfos) {
-            renderFluid(tankInfo.fluid, column, row);
-            column++;
-            if (column >= columns) {
-                column = 0;
-                row++;
+        RenderHelper.enableStandardItemLighting();
+        try {
+            int column = 0, row = 0;
+            for (FluidTankInfo tankInfo : fluidTankInfos) {
+                renderFluid(tankInfo.fluid, column, row);
+                column++;
+                if (column >= columns) {
+                    column = 0;
+                    row++;
+                }
             }
+        } finally {
+            RenderHelper.disableStandardItemLighting();
         }
     }
 
     private void renderFluid(FluidStack fluidStack, int column, int row) {
         Fluid fluid = fluidStack.getFluid();
         HoloInventory.fluidRenderFakeItem.setFluid(fluid);
-        String suffix = Config.renderSuffixDarkened ? EnumChatFormatting.GRAY + "L" : "L";
+        String suffix = Config.renderSuffixDarkened ? LITRE_DARKENED : LITRE;
         doRenderEntityItem(column, row, doStackSizeCrap(fluidStack.amount) + suffix);
     }
 
     private void doRenderEntityItem(int column, int row, String stackSizeText) {
-        RenderHelper.enableStandardItemLighting();
         GL11.glPushMatrix();
-        GL11.glTranslatef(width - ((column + 0.2f) * scale * spacing), height - ((row + 0.05f) * scale * spacing), 0f);
-        GL11.glTranslatef(0, offset, 0);
-        GL11.glScalef(scale, scale, scale);
-        RenderItem.renderInFrame = true;
-        GL11.glRotatef(Config.rotateItems ? time : 180f, 0.0F, 1.0F, 0.0F);
-        final boolean oldFancyGraphics;
-        if (angelicaFancyItemsSetter != null) {
-            try {
-                oldFancyGraphics = (boolean) angelicaFancyItemsGetter.invokeExact();
-                angelicaFancyItemsSetter.invokeExact(true);
-            } catch (Throwable t) {
-                throw Throwables.propagate(t);
+        final boolean oldRenderInFrame = RenderItem.renderInFrame;
+        try {
+            GL11.glTranslatef(
+                    width - ((column + 0.2f) * scale * spacing),
+                    height - ((row + 0.05f) * scale * spacing),
+                    0f);
+            GL11.glTranslatef(0, offset, 0);
+            GL11.glScalef(scale, scale, scale);
+            RenderItem.renderInFrame = true;
+            GL11.glRotatef(Config.rotateItems ? time : 180f, 0.0F, 1.0F, 0.0F);
+            final boolean oldFancyGraphics;
+            if (angelicaFancyItemsSetter != null) {
+                try {
+                    oldFancyGraphics = (boolean) angelicaFancyItemsGetter.invokeExact();
+                    angelicaFancyItemsSetter.invokeExact(true);
+                } catch (Throwable t) {
+                    throw Throwables.propagate(t);
+                }
+            } else {
+                oldFancyGraphics = Minecraft.getMinecraft().gameSettings.fancyGraphics;
+                Minecraft.getMinecraft().gameSettings.fancyGraphics = true;
             }
-        } else {
-            oldFancyGraphics = Minecraft.getMinecraft().gameSettings.fancyGraphics;
-            Minecraft.getMinecraft().gameSettings.fancyGraphics = true;
-        }
-        ClientHandler.RENDER_ITEM.doRender(fakeEntityItem, 0, 0, 0, 0, 0);
-        if (angelicaFancyItemsSetter != null) {
             try {
-                angelicaFancyItemsSetter.invokeExact((boolean) oldFancyGraphics);
-            } catch (Throwable t) {
-                throw Throwables.propagate(t);
+                ClientHandler.RENDER_ITEM.doRender(fakeEntityItem, 0, 0, 0, 0, 0);
+            } finally {
+                if (angelicaFancyItemsSetter != null) {
+                    try {
+                        angelicaFancyItemsSetter.invokeExact((boolean) oldFancyGraphics);
+                    } catch (Throwable t) {
+                        throw Throwables.propagate(t);
+                    }
+                } else {
+                    Minecraft.getMinecraft().gameSettings.fancyGraphics = oldFancyGraphics;
+                }
             }
-        } else {
-            Minecraft.getMinecraft().gameSettings.fancyGraphics = oldFancyGraphics;
+        } finally {
+            RenderItem.renderInFrame = oldRenderInFrame;
+            GL11.glPopMatrix();
         }
-        RenderItem.renderInFrame = false;
-        GL11.glPopMatrix();
-        RenderHelper.disableStandardItemLighting();
         if (renderText && stackSizeText != null) {
             GL11.glPushMatrix();
+            GL11.glDisable(GL11.GL_LIGHTING);
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glTranslatef(
                     width - ((column + 0.2f) * scale * spacing),
@@ -263,6 +285,7 @@ public class GroupRenderer {
             RenderManager.instance.getFontRenderer().drawString(stackSizeText, 0, 0, TEXT_COLOR, true);
             GL11.glDisable(GL12.GL_RESCALE_NORMAL);
             GL11.glEnable(GL11.GL_DEPTH_TEST);
+            GL11.glEnable(GL11.GL_LIGHTING);
             GL11.glPopMatrix();
         }
     }
@@ -322,6 +345,15 @@ public class GroupRenderer {
     private static final String[] suffixNormal = { "", "K", "M", "B" };
     private static final String[] suffixDarkened = { "", EnumChatFormatting.GRAY + "K", EnumChatFormatting.GRAY + "M",
             EnumChatFormatting.GRAY + "B" };
+    private static final String LITRE = "L";
+    private static final String LITRE_DARKENED = EnumChatFormatting.GRAY + "L";
+
+    /**
+     * Stack sizes repeat heavily inside a hologram (a chest full of 64s) and only change when the server sends an
+     * update.
+     */
+    private static final Int2ObjectMap<String> STACK_SIZE_TEXT_CACHE = new Int2ObjectOpenHashMap<>();
+    private static boolean cachedSuffixDarkened = Config.renderSuffixDarkened;
 
     /**
      * Shifts GL & returns the string
@@ -331,7 +363,17 @@ public class GroupRenderer {
      */
     private String doStackSizeCrap(int stackSize) {
         if (stackSizeDebugOverride != 0) stackSize = stackSizeDebugOverride;
-        return formatStackSize(stackSize);
+        if (cachedSuffixDarkened != Config.renderSuffixDarkened) {
+            cachedSuffixDarkened = Config.renderSuffixDarkened;
+            STACK_SIZE_TEXT_CACHE.clear();
+        }
+        String text = STACK_SIZE_TEXT_CACHE.get(stackSize);
+        if (text == null) {
+            if (STACK_SIZE_TEXT_CACHE.size() > 4096) STACK_SIZE_TEXT_CACHE.clear();
+            text = formatStackSize(stackSize);
+            STACK_SIZE_TEXT_CACHE.put(stackSize, text);
+        }
+        return text;
     }
 
     private static String formatStackSize(long i) {

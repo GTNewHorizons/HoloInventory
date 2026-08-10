@@ -13,51 +13,66 @@
 
 package net.dries007.holoInventory.util;
 
+import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_DIM;
+import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_X;
+import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_Y;
+import static net.dries007.holoInventory.util.NBTKeys.NBT_KEY_Z;
+
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.MovingObjectPosition;
-import net.minecraftforge.common.util.ForgeDirection;
 
 public class Coord {
 
     public final int dim;
-    public double x;
-    public double y;
-    public double z;
+    public final double x;
+    public final double y;
+    public final double z;
 
     public Coord(int dim, MovingObjectPosition mop) {
         this.dim = dim;
-
-        switch (mop.typeOfHit) {
-            case BLOCK:
-                this.x = mop.blockX;
-                this.y = mop.blockY;
-                this.z = mop.blockZ;
-                break;
-            case ENTITY:
-                this.x = mop.entityHit.posX;
-                this.y = mop.entityHit.posY;
-                this.z = mop.entityHit.posZ;
-                break;
-            default:
-                break;
+        if (mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
+            this.x = mop.blockX;
+            this.y = mop.blockY;
+            this.z = mop.blockZ;
+        } else if (mop.typeOfHit == MovingObjectPosition.MovingObjectType.ENTITY) {
+            this.x = mop.entityHit.posX;
+            this.y = mop.entityHit.posY;
+            this.z = mop.entityHit.posZ;
+        } else {
+            this.x = 0;
+            this.y = 0;
+            this.z = 0;
         }
     }
 
-    public Coord offset(int side) {
-        ForgeDirection dir = ForgeDirection.getOrientation(side);
-        this.x += dir.offsetX;
-        this.y += dir.offsetY;
-        this.z += dir.offsetZ;
-        return this;
+    public Coord(NBTTagCompound tag) {
+        this.dim = tag.getInteger(NBT_KEY_DIM);
+        this.x = tag.getInteger(NBT_KEY_X);
+        this.y = tag.getInteger(NBT_KEY_Y);
+        this.z = tag.getInteger(NBT_KEY_Z);
     }
 
+    public void writeToNBT(NBTTagCompound tag) {
+        tag.setInteger(NBT_KEY_DIM, dim);
+        tag.setInteger(NBT_KEY_X, (int) x);
+        tag.setInteger(NBT_KEY_Y, (int) y);
+        tag.setInteger(NBT_KEY_Z, (int) z);
+    }
+
+    @Override
     public int hashCode() {
-        return (int) this.x + ((int) this.z << 8) + ((int) this.y << 16) + (this.dim << 24);
+        int result = dim;
+        result = 31 * result + Double.hashCode(x);
+        result = 31 * result + Double.hashCode(y);
+        return 31 * result + Double.hashCode(z);
     }
 
+    @Override
     public boolean equals(Object obj) {
-        if (obj instanceof Coord) {
-            Coord coord = (Coord) obj;
-            return this.x == coord.x && this.y == coord.y && this.z == coord.z && this.dim == coord.dim;
+        if (obj instanceof Coord coord) {
+            return Double.compare(this.x, coord.x) == 0 && Double.compare(this.y, coord.y) == 0
+                    && Double.compare(this.z, coord.z) == 0
+                    && this.dim == coord.dim;
         }
         return false;
     }
