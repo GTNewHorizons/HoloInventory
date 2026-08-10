@@ -453,7 +453,8 @@ public class Renderer {
     }
 
     private static void setRenderPos(float partialTicks) {
-        Entity thePlayer = Minecraft.getMinecraft().thePlayer;
+        Entity thePlayer = Minecraft.getMinecraft().renderViewEntity != null ? Minecraft.getMinecraft().renderViewEntity
+                : Minecraft.getMinecraft().thePlayer;
         double lastTickPosX = thePlayer.lastTickPosX;
         double posX = thePlayer.posX;
         renderPosX = lastTickPosX + (posX - lastTickPosX) * partialTicks;
