@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -264,11 +265,11 @@ public class ServerEventHandler {
                     teChest,
                     (TileEntityChest) world.getTileEntity(x + 1, y, z));
 
-            processInventoryData(coord, player, inventory);
+            processInventoryData(coord, player, type, inventory);
         } else if (HoloInventory.isAE2Loaded && te instanceof TileInterface) {
             final IInventory patterns = ((TileInterface) te).getInventoryByName("patterns");
             final IInventory wrapped = getCachedPatternsWrapper(world, ((TileInterface) te).getCustomName(), patterns);
-            processInventoryData(coord, player, wrapped);
+            processInventoryData(coord, player, type, wrapped);
         } else if (HoloInventory.isAE2Loaded && te instanceof IPartHost host) {
             final Vec3 position = mo.hitVec.addVector(-mo.blockX, -mo.blockY, -mo.blockZ);
             final SelectedPart sp = host.selectPart(position);
@@ -278,16 +279,16 @@ public class ServerEventHandler {
                         world,
                         ((PartInterface) sp.part).getCustomName(),
                         patterns);
-                processInventoryData(coord, player, wrapped);
+                processInventoryData(coord, player, type, wrapped);
             } else {
                 removeInventoryData(coord, player);
             }
         } else if (te instanceof IInventory) {
-            processInventoryData(coord, player, (IInventory) te);
+            processInventoryData(coord, player, type, (IInventory) te);
         } else if (te instanceof TileEntityEnderChest) {
-            processInventoryData(coord, player, player.getInventoryEnderChest());
+            processInventoryData(coord, player, type, player.getInventoryEnderChest());
         } else if (te instanceof BlockJukebox.TileEntityJukebox realTe) {
-            processInventoryData(coord, player, JUKEBOX_NAME, realTe.func_145856_a());
+            processInventoryData(coord, player, type, new FakeInventory(JUKEBOX_NAME, realTe.func_145856_a()));
         }
     }
 
@@ -304,7 +305,7 @@ public class ServerEventHandler {
 
     private void checkForChangedType(Coord coord, String type, EntityPlayerMP player) {
         final InventoryData data = mapBlockToInv.get(coord);
-        if (data != null && !type.equals(data.getType())) {
+        if (data != null && !Objects.equals(type, data.getType())) {
             doRemoveInventoryData(coord, player, data);
         }
     }
@@ -341,14 +342,15 @@ public class ServerEventHandler {
         return new FakeInventory(name, outputs);
     }
 
-    private void processInventoryData(Coord coord, EntityPlayerMP player, String name, ItemStack... itemStacks) {
-        processInventoryData(coord, player, new FakeInventory(name, itemStacks));
-    }
-
-    private void processInventoryData(Coord coord, EntityPlayerMP player, IInventory inventory) {
+    /**
+     * @param type class of the tile entity, which is what decides whether the block turned into something else. The
+     *             inventory can be a wrapper around it ({@link InventoryLargeChest}, {@link FakeInventory}, the
+     *             player's ender chest) and its class says nothing about that.
+     */
+    private void processInventoryData(Coord coord, EntityPlayerMP player, String type, IInventory inventory) {
         InventoryData inventoryData = mapBlockToInv.get(coord);
         if (inventoryData == null) {
-            inventoryData = new InventoryData(inventory, coord);
+            inventoryData = new InventoryData(inventory, coord, type);
         } else {
             inventoryData.update(inventory);
         }

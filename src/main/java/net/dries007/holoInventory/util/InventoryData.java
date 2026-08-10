@@ -36,17 +36,17 @@ public class InventoryData {
     public WeakReference<IInventory> te;
     public final WeakHashMap<EntityPlayer, NBTTagCompound> playerSet = new WeakHashMap<>();
     private final WeakHashMap<EntityPlayer, Long> lastSentTicks = new WeakHashMap<>();
-    public final String name;
-    public String type;
+    private String name;
+    /** Class of the tile entity at {@link #coord}, not of the inventory it was unwrapped into. */
+    private final String type;
     private long snapshotTick = Long.MIN_VALUE;
     private NBTTagCompound snapshot;
 
-    public InventoryData(IInventory te, Coord coord) {
+    public InventoryData(IInventory te, Coord coord, String type) {
         this.coord = coord;
         this.te = new WeakReference<>(te);
         this.name = Strings.nullToEmpty(te.getInventoryName());
-        this.type = te.getClass().getCanonicalName();
-        if (type == null) type = te.getClass().getName();
+        this.type = type;
     }
 
     public void sendIfOld(EntityPlayerMP player) {
@@ -74,12 +74,14 @@ public class InventoryData {
 
     /**
      * An ender chest hands out a different {@link IInventory} per player, the snapshot taken for the player who ticked
-     * first must not be reused for the next one.
+     * first must not be reused for the next one. Wrapped inventories (double chests, AE2 pattern interfaces) are
+     * rebuilt on every look and can carry a different name than the one we cached.
      */
     public void update(IInventory inventory) {
         if (te.get() != inventory) {
             snapshot = null;
             te = new WeakReference<>(inventory);
+            name = Strings.nullToEmpty(inventory.getInventoryName());
         }
     }
 
