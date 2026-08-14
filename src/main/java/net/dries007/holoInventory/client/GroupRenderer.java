@@ -192,7 +192,8 @@ public class GroupRenderer {
         final String stackSizeText = (itemStack.getMaxStackSize() == 1 && itemStack.stackSize == 1) ? null
                 : doStackSizeCrap(itemStack.stackSize);
         final int realStackSize = renderStack.stackSize;
-        if (!Config.renderMultiple) {
+        // an unstackable item carrying a large stack size holds a counter, not a pile, so never draw copies of it
+        if (!Config.renderMultiple || renderStack.getMaxStackSize() == 1) {
             renderStack.stackSize = 1;
         }
         fakeEntityItem.setEntityItemStack(renderStack);
