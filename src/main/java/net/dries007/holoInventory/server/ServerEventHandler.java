@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import net.dries007.holoInventory.Config;
 import net.dries007.holoInventory.HoloInventory;
+import net.dries007.holoInventory.compat.AE2Patterns;
 import net.dries007.holoInventory.network.RemoveInventoryMessage;
 import net.dries007.holoInventory.network.RenameMessage;
 import net.dries007.holoInventory.util.Coord;
@@ -58,11 +59,8 @@ import net.minecraftforge.fluids.IFluidHandler;
 
 import com.github.bsideup.jabel.Desugar;
 
-import appeng.api.implementations.ICraftingPatternItem;
-import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.parts.IPartHost;
 import appeng.api.parts.SelectedPart;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.parts.misc.PartInterface;
 import appeng.tile.misc.TileInterface;
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -368,14 +366,7 @@ public class ServerEventHandler {
         int N = patterns.getSizeInventory();
         final ItemStack[] outputs = new ItemStack[N];
         for (int i = 0; i < N; ++i) {
-            final ItemStack stack = patterns.getStackInSlot(i);
-            outputs[i] = null;
-            if (stack != null && stack.getItem() instanceof ICraftingPatternItem) {
-                ICraftingPatternDetails pd = ((ICraftingPatternItem) stack.getItem()).getPatternForItem(stack, w);
-                if (pd == null) continue;
-                IAEItemStack[] outs = pd.getCondensedOutputs();
-                if (outs != null && outs.length > 0) outputs[i] = outs[0].getItemStack();
-            }
+            outputs[i] = AE2Patterns.getPatternOutput(patterns.getStackInSlot(i), w);
         }
         return new FakeInventory(name, outputs);
     }
