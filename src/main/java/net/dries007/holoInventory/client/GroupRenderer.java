@@ -8,6 +8,7 @@ import java.util.List;
 import net.dries007.holoInventory.Config;
 import net.dries007.holoInventory.HoloInventory;
 import net.dries007.holoInventory.util.Helper;
+import net.dries007.holoInventory.util.NBTKeys;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.RenderHelper;
@@ -192,7 +193,8 @@ public class GroupRenderer {
         final String stackSizeText = (itemStack.getMaxStackSize() == 1 && itemStack.stackSize == 1) ? null
                 : doStackSizeCrap(itemStack.stackSize);
         final int realStackSize = renderStack.stackSize;
-        if (!Config.renderMultiple) {
+        if (!Config.renderMultiple
+                || (renderStack.hasTagCompound() && renderStack.getTagCompound().getBoolean(NBTKeys.NBT_KEY_AMOUNT))) {
             renderStack.stackSize = 1;
         }
         fakeEntityItem.setEntityItemStack(renderStack);
