@@ -344,9 +344,9 @@ public class GroupRenderer {
 
     private static final DecimalFormat DF_ONE_FRACTION_DIGIT = new DecimalFormat("##.0");
     private static final DecimalFormat DF_TWO_FRACTION_DIGIT = new DecimalFormat("#.00");
-    private static final String[] suffixNormal = { "", "K", "M", "B" };
+    private static final String[] suffixNormal = { "", "K", "M", "G" };
     private static final String[] suffixDarkened = { "", EnumChatFormatting.GRAY + "K", EnumChatFormatting.GRAY + "M",
-            EnumChatFormatting.GRAY + "B" };
+            EnumChatFormatting.GRAY + "G" };
     private static final String LITRE = "L";
     private static final String LITRE_DARKENED = EnumChatFormatting.GRAY + "L";
 
