@@ -1,5 +1,7 @@
 package net.dries007.holoInventory.client;
 
+import static com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil.getFluidUnit;
+
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.text.DecimalFormat;
@@ -191,7 +193,7 @@ public class GroupRenderer {
         if (renderStack == null) renderStack = itemStack;
 
         final String stackSizeText = (itemStack.getMaxStackSize() == 1 && itemStack.stackSize == 1) ? null
-                : doStackSizeCrap(itemStack.stackSize);
+                : doStackSizeCrap(itemStack.stackSize, false);
         final int realStackSize = renderStack.stackSize;
         if (!Config.renderMultiple
                 || (renderStack.hasTagCompound() && renderStack.getTagCompound().getBoolean(NBTKeys.NBT_KEY_AMOUNT))) {
@@ -225,8 +227,10 @@ public class GroupRenderer {
     private void renderFluid(FluidStack fluidStack, int column, int row) {
         Fluid fluid = fluidStack.getFluid();
         HoloInventory.fluidRenderFakeItem.setFluid(fluid);
-        String suffix = Config.renderSuffixDarkened ? LITRE_DARKENED : LITRE;
-        doRenderEntityItem(column, row, doStackSizeCrap(fluidStack.amount) + suffix);
+        String unit = getFluidUnit();
+        boolean isMb = unit.equals("mB");
+        if (isMb && fluidStack.amount >= 1000) unit = "B";
+        doRenderEntityItem(column, row, doStackSizeCrap(fluidStack.amount, isMb) + unit);
     }
 
     private void doRenderEntityItem(int column, int row, String stackSizeText) {
@@ -349,6 +353,8 @@ public class GroupRenderer {
             EnumChatFormatting.GRAY + "G" };
     private static final String LITRE = "L";
     private static final String LITRE_DARKENED = EnumChatFormatting.GRAY + "L";
+    private static final String MB = "mB";
+    private static final String MB_DARKENED = EnumChatFormatting.GRAY + "MB";
 
     /**
      * Stack sizes repeat heavily inside a hologram (a chest full of 64s) and only change when the server sends an
@@ -360,27 +366,30 @@ public class GroupRenderer {
     /**
      * Shifts GL & returns the string
      *
+     * @param ismb use mB units
      * @param stackSize the stackSize.
      * @return the string to be rendered
      */
-    private String doStackSizeCrap(int stackSize) {
+    private String doStackSizeCrap(int stackSize, boolean ismb) {
         if (stackSizeDebugOverride != 0) stackSize = stackSizeDebugOverride;
         if (cachedSuffixDarkened != Config.renderSuffixDarkened) {
             cachedSuffixDarkened = Config.renderSuffixDarkened;
             STACK_SIZE_TEXT_CACHE.clear();
         }
-        String text = STACK_SIZE_TEXT_CACHE.get(stackSize);
+        int key = ismb ? -stackSize : stackSize;
+        String text = STACK_SIZE_TEXT_CACHE.get(key);
         if (text == null) {
             if (STACK_SIZE_TEXT_CACHE.size() > 4096) STACK_SIZE_TEXT_CACHE.clear();
-            text = formatStackSize(stackSize);
+            text = formatStackSize(stackSize, ismb);
             STACK_SIZE_TEXT_CACHE.put(stackSize, text);
         }
         return text;
     }
 
-    private static String formatStackSize(long i) {
+    private static String formatStackSize(long i, boolean ismb) {
         String[] suffixSelected = Config.renderSuffixDarkened ? suffixDarkened : suffixNormal;
         int level = 0;
+        if (ismb) i /= 1000;
         while (i > 1000 && level < suffixSelected.length - 1) {
             level++;
             if (i >= 100_000) {
