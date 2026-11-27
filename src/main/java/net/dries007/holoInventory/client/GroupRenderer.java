@@ -230,6 +230,7 @@ public class GroupRenderer {
         String unit = getFluidUnit();
         boolean isMb = unit.equals("mB");
         if (isMb && fluidStack.amount >= 1000) unit = "B";
+        if (Config.renderSuffixDarkened) unit = EnumChatFormatting.GRAY + unit;
         doRenderEntityItem(column, row, doStackSizeCrap(fluidStack.amount, isMb) + unit);
     }
 
@@ -366,7 +367,7 @@ public class GroupRenderer {
     /**
      * Shifts GL & returns the string
      *
-     * @param ismb use mB units
+     * @param ismb      use mB units
      * @param stackSize the stackSize.
      * @return the string to be rendered
      */
@@ -381,7 +382,7 @@ public class GroupRenderer {
         if (text == null) {
             if (STACK_SIZE_TEXT_CACHE.size() > 4096) STACK_SIZE_TEXT_CACHE.clear();
             text = formatStackSize(stackSize, ismb);
-            STACK_SIZE_TEXT_CACHE.put(stackSize, text);
+            STACK_SIZE_TEXT_CACHE.put(key, text);
         }
         return text;
     }
@@ -389,8 +390,8 @@ public class GroupRenderer {
     private static String formatStackSize(long i, boolean ismb) {
         String[] suffixSelected = Config.renderSuffixDarkened ? suffixDarkened : suffixNormal;
         int level = 0;
-        if (ismb) i /= 1000;
-        while (i > 1000 && level < suffixSelected.length - 1) {
+        if (ismb && i >= 1000) i /= 1000;
+        while (i >= 1000 && level < suffixSelected.length - 1) {
             level++;
             if (i >= 100_000) {
                 // still more level to go, or 0 fraction digit
